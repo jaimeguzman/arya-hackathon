@@ -1,3 +1,52 @@
+=== Session 12 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. UNBLOCKED broken tree: another agent's uncommitted twilio.py edits
+   (family-mode WIP for feature 46 — family_intake.py, SMS_OUTBOX, _now())
+   used datetime without importing it, breaking collection of all 6 route
+   test files. Added `from datetime import datetime` to twilio.py.
+   NOTE: that one-line fix is deliberately left UNCOMMITTED — it sits in
+   the working tree so the other agent's eventual family-mode commit
+   picks it up; committing twilio.py now would sweep in their WIP.
+2. Regression check after the fix: full suite green (158 -> 164 passed).
+3. Feature #10 (backend test harness) VERIFIED and marked passing:
+   pytest.ini + tests/ package + Makefile `make safety` CI gate
+   (30 safety tests, non-zero exit on failure) all confirmed by running.
+4. Feature #6 (Redis key conventions + connection module) IMPLEMENTED,
+   VERIFIED, marked passing:
+   - NEW app/redis_state.py: key builders pipeline:{doc_id},
+     call:{call_sid}, eligibility_cache:{zip}:{payer}:{plan}, retry_queue;
+     RedisState with injected client (same pattern as CallModeStore);
+     eligibility cache written with configurable short TTL
+     (ELIGIBILITY_CACHE_TTL_SECONDS, documented in .env.example);
+     get_redis_client() from REDIS_URL, refuses unconfigured URL.
+   - NEW tests/test_redis_state.py: 6 tests — round-trip per key type,
+     TTL assertion, unconfigured-URL guard.
+
+Status: 24/115 features passing.
+
+Notes:
+- Foreign uncommitted work grew: family_intake.py (feature 46 WIP),
+  knowledge_graph.py, live_sources.py, eligibility_agent.py edits,
+  several .md files, infra/neo4j + infra/postgres. All untouched;
+  staged explicit paths only. Do NOT pick feature 46/47 until that
+  work lands — both touch routes/twilio.py.
+- WORKFLOW.md progress-table sync still deferred (file carries the
+  other agent's uncommitted edits).
+- feature_list.json edits: use ensure_ascii=False with json.dump or the
+  em-dashes in descriptions get re-escaped and pollute the diff.
+
+Recommended next work (avoids twilio.py):
+- Feature #25 (eligibility result caching in Redis) can now build on
+  redis_state.py — wire RedisState.cache_eligibility into the
+  eligibility path once eligibility_agent.py stops being foreign-dirty,
+  or via a separate cache layer module.
+- Features #28-#39 (document pipeline layers) are independent new
+  modules — good parallel track.
+- infra features #1/#4/#5 still blocked on Docker Desktop.
+
 === Session 11 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
