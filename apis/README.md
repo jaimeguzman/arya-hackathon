@@ -35,6 +35,7 @@ apis/
 │   ├── app/             # FastAPI application
 │   │   ├── main.py      # App entrypoint, routers, health checks
 │   │   ├── config.py    # Environment-driven settings
+│   │   ├── agents/      # Data-backed agents (eligibility_agent.py)
 │   │   ├── routes/      # HTTP + WebSocket endpoints
 │   │   └── safety/      # Non-negotiable safety layer (must-have.md Part 1)
 │   ├── tests/           # API and safety tests
@@ -43,6 +44,17 @@ apis/
 ├── CLAUDE.md
 └── README.md
 ```
+
+## Endpoints (api_intake)
+
+| Endpoint | Type | Purpose |
+|---|---|---|
+| `GET /health` | HTTP | Liveness + dependency (postgres/neo4j/redis) TCP status |
+| `POST /eligibility-check` | HTTP | Deterministic ACCEPT / DECLINE / NEEDS_MORE_INFO over `data/` datasets, with reasons, matched plan, required docs, matched caregivers |
+| `POST /twilio/voice` | HTTP (Twilio webhook) | Returns TwiML `<Connect><ConversationRelay>` pointing at the WebSocket below (needs `PUBLIC_BASE_URL`) |
+| `WS /twilio/conversation-relay` | WebSocket | Safety-gated conversation loop: consent first → field extraction → deterministic eligibility → banned-phrase filter → handoff on failure |
+
+Voice Agent mode prompts live in [`../ai-agents/voice-agent/`](../ai-agents/voice-agent).
 
 ## Requirements
 
