@@ -107,6 +107,14 @@ If a shared component is unavoidable:
 3. Minimize future modifications.
 4. Update architecture documentation.
 
+### API encapsulation rule
+
+Every API under `apis/` MUST live inside its own named subfolder — one folder per API — to keep it encapsulated. Never place API code, modules, or loose files directly at the root of `apis/`.
+
+- Use a descriptive, prefixed folder name per integration, e.g. `apis/api_twilio/`, `apis/api_eligibility/`, `apis/api_fax/`.
+- All of that API's code, config, and tests live inside its own folder (`apis/api_twilio/app/`, `apis/api_twilio/tests/`, etc.).
+- No shared `apis/app/` or `apis/tests/` sitting loose at the `apis/` root — each API owns its own `app/` and `tests/` inside its named folder.
+
 ### Development workflow (every request)
 
 **Step 1 — Synchronize context.** Read all `.md` files, project structure, and relevant implementation files. Summarize:
