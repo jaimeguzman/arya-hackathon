@@ -20,7 +20,15 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from app.eligibility.status_writer import set_intake_status
 from app.safety.eligibility import EligibilityResult, check_eligibility
+
+# Decision status -> intake status written by the agent's write path.
+_STATUS_TO_INTAKE_STATUS = {
+    "ACCEPT": "accepted",
+    "DECLINE": "declined",
+    "NEEDS_MORE_INFO": "needs_more_info",
+}
 
 # Repo layout: apis/api_intake/app/agents/ -> repo root is 4 levels up.
 _REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -176,3 +184,13 @@ def decide(request: EligibilityRequest) -> EligibilityDecision:
         required_documentation=required_documentation(matched_plan) if matched_plan else [],
         matched_caregivers=[caregiver["id"] for caregiver in caregivers],
     )
+
+
+def apply_decision(intake: dict, decision: EligibilityDecision) -> dict:
+    """The ONLY sanctioned write path for eligibility/acceptance statuses.
+
+    Translates the agent's decision into an intake status and writes it via
+    the guarded status writer. Other modules calling set_intake_status()
+    with a decision status directly get UnauthorizedDecisionWrite.
+    """
+    return set_intake_status(intake, _STATUS_TO_INTAKE_STATUS[decision.status])

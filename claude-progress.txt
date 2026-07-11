@@ -1,3 +1,34 @@
+=== Session 7 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (93 passed).
+2. Feature #26 (only Eligibility Agent writes eligibility/acceptance
+   decisions) IMPLEMENTED, VERIFIED, marked passing:
+   - New app/eligibility/status_writer.py: set_intake_status() with
+     caller-module inspection — decision statuses (eligible/accepted/
+     declined) raise UnauthorizedDecisionWrite unless the caller is
+     app.agents.eligibility_agent. Non-decision statuses allowed anywhere.
+   - eligibility_agent.apply_decision(intake, decision): the only
+     sanctioned write path; maps ACCEPT/DECLINE/NEEDS_MORE_INFO to
+     accepted/declined/needs_more_info.
+   - tests/test_status_writer.py: 19 tests (parametrized voice/pipeline
+     module rejection, intake left unchanged on rejection, agent path
+     transitions). Full suite: 112 passed.
+
+Status: 18/115 features passing.
+
+Known gaps / still blocked (carried over):
+- Docker daemon still NOT running — #1/#4/#5/#21/#22/#25 blocked.
+- .env.example still not writable in sandbox (REFERENCE_DATA_DIR pending).
+- WORKFLOW.md snapshot update still blocked by doc hook.
+
+Recommended next work:
+- Features #45/#46/#47 (provider/family/patient modes) — prompt docs exist
+  under ai-agents/voice-agent/; wire mode routing (#42-#44) into
+  routes/twilio.py, then have accepted branches call apply_decision().
+
 === Session 6 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize

@@ -341,7 +341,7 @@
       "Verify the intake status transitions to eligible/accepted/declined only through the Eligibility Agent's write path. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit test: attempts to set an acceptance status from voice or pipeline modules are rejected. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 27,
