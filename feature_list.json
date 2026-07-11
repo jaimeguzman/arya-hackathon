@@ -561,7 +561,7 @@
       "Verify inbound is never routed to Outbound mode \u2014 Outbound is reserved for agency-initiated calls carrying a mission parameter. Expected result: the command/check completes successfully with no blocking errors.",
       "Tests assert each mode is selected from representative utterances for provider, family, and patient. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 43,

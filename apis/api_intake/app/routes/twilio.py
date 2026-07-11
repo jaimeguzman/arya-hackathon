@@ -22,6 +22,12 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 
 from app.agents.eligibility_agent import EligibilityRequest, decide, find_plan_in_text
+from app.agents.mode_router import (
+    CallerMode,
+    CallModeStore,
+    classify_utterance,
+    load_mode_prompt,
+)
 from app.config import get_settings
 from app.safety.consent import CONSENT_DISCLOSURE, CallRecord, handle_consent_answer
 from app.safety.handoff import run_call_turn, trigger_handoff
@@ -63,6 +69,38 @@ class CallSession:
         self.service_type: str | None = None
         self.decision_spoken = False
         self.clarification_attempts = 0
+        self.mode: CallerMode | None = None
+        self.mode_prompt: str | None = None
+
+
+def get_mode_store() -> CallModeStore | None:
+    """Redis-backed call.mode persistence; None when REDIS_URL is not set.
+
+    Tests monkeypatch this to inject a fake Redis client.
+    """
+    settings = get_settings()
+    if not settings.redis_url:
+        return None
+    import redis
+
+    return CallModeStore(redis.Redis.from_url(settings.redis_url))
+
+
+def _assign_mode(session: CallSession, utterance: str) -> None:
+    """Early-turn caller-type detection (WORKFLOW Path A Step 3).
+
+    Runs only after consent (callers reach here through the consent gate).
+    Only inbound modes are ever assigned — never OUTBOUND, which is reserved
+    for agency-initiated calls carrying a mission parameter.
+    """
+    classification = classify_utterance(utterance)
+    if classification.mode is None or classification.mode == CallerMode.OUTBOUND:
+        return
+    session.mode = classification.mode
+    session.mode_prompt = load_mode_prompt(classification.mode)
+    store = get_mode_store()
+    if store is not None:
+        store.set_mode(session.record.call_sid, classification.mode)
 
 
 def _extract_fields(session: CallSession, utterance: str) -> bool:
@@ -207,7 +245,10 @@ async def conversation_relay(websocket: WebSocket) -> None:
                     await _send_text(websocket, speak(SafeResponse(CONSENT_DISCLOSURE)))
                 continue
 
-            # Consent granted: run the turn inside the safety boundary.
+            # Consent granted: detect caller type on early turns, then run
+            # the turn inside the safety boundary.
+            if session.mode is None:
+                _assign_mode(session, utterance)
             result = run_call_turn(
                 session.record,
                 lambda call: _provider_turn(session, utterance),
