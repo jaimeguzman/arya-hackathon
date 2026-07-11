@@ -101,3 +101,5 @@ flowchart LR
 | **Redis** | Ephemeral call state, pipeline checkpoints, follow-up schedule |
 
 Full step-by-step diagrams (including safety-gated call flow): [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+
+note: We had the conversation with Anand - reagrding the twillo - there was complaince issue so we couldn't submit the video.
