@@ -1,3 +1,41 @@
+=== Session 24 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: 271 passed in sandbox before new work; the 2
+   docling failures are the known *.pem-read sandbox artifact
+   (re-verified passing outside the sandbox: 14 passed).
+2. Feature #37 (Layer 7 Confidence Scoring and Routing) IMPLEMENTED,
+   VERIFIED, marked passing:
+   - NEW app/pipeline/routing.py: FieldEvidence (field, value,
+     extraction_path from Layer 4 convergence, validated,
+     cross_confirmed, optional Correction) -> score_field/route_field/
+     route_fields. Tiers per spec: HIGH (rules + validated +
+     cross-confirmed) -> AUTO_POPULATE; MEDIUM (vision + validated
+     single doc; also validated-but-not-HIGH, e.g. rules single-doc or
+     review-flagged correction) -> AUTO_POPULATE_FLAG_REVIEW; LOW
+     (failed validation or HUMAN_REVIEW correction) ->
+     WITHHOLD_GAP_LIST, reusing correction.GapItem for gap rows.
+     RoutingReport.intake_record() returns HIGH+MEDIUM fields only.
+     Deterministic code, no LLM.
+   - NEW tests/test_pipeline_routing.py: 9 tests (one per tier,
+     uncertain-correction override, auto-correct keeps HIGH,
+     review-flagged correction caps at MEDIUM, rules single-doc is
+     MEDIUM, intake-record composition, unknown path raises).
+     Full suite: 280 passed.
+
+Status: 36/115 features passing.
+
+Recommended next work:
+- Feature #38 (Redis pipeline state per document) needs Redis/Docker;
+  check tests/test_redis_state.py first — fakeredis may already be the
+  pattern there.
+- Docker still down: features #1/#4/#5, #21/#22 (Neo4j), #25 (Redis)
+  remain blocked for e2e verification.
+- Doc-sync gaps from sessions 20-22 still pending (edit hooks block
+  data/README.md and WORKFLOW.md).
+
 === Session 23 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize

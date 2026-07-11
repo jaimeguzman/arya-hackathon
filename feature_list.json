@@ -491,7 +491,7 @@
       "Verify LOW (failed validation/uncertain correction) is withheld and added to the gap list. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit tests assert routing per tier. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 38,
