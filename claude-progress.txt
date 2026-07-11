@@ -1,3 +1,41 @@
+=== Session 21 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: 246 passed outside sandbox (the 2 in-sandbox
+   failures remain the known *.pem-read sandbox artifact).
+2. Feature #34 (Layer 5 Correction Agent) IMPLEMENTED, VERIFIED, marked
+   passing:
+   - NEW app/pipeline/correction.py: correct_failures(record, report,
+     reference) tiers every ValidationFailure:
+     HIGH/auto_correct (single OCR-confusion substitution matching the
+     ICD-10 reference table, e.g. M17.1I -> M17.11),
+     MEDIUM/apply_flag_review (single substitution matching the payer
+     member-ID format, e.g. H12O456789 -> H120456789, format-only
+     evidence), LOW/human_review + GapItem for the Voice Agent
+     (dosage out of clinical range e.g. Lisinopril 200mg, ambiguous
+     candidates, and all rules with no safe deterministic fix: DOB,
+     dates, zip, NPI). OCR confusion table O/0 I/1 L/1 S/5 B/8 Z/2 G/6;
+     candidates accepted only when they pass the failed rule — the
+     agent never invents data. validation.py rule names are the input
+     contract, as planned.
+   - NEW tests/test_pipeline_correction.py: 7 tests covering all three
+     confidence outcomes plus ambiguity, fallback rule, clean record.
+   - Full suite: 253 passed.
+
+Status: 33/115 features passing.
+
+Recommended next work:
+- Feature #35 (Cross-Reference Agent): consistency across pages —
+  name/DOB match across documents, diagnosis text vs ICD code,
+  medication-diagnosis consistency (Warfarin without anticoagulation
+  indication). Reference tables in data/reference/.
+- Then #36 (Layer 6 completeness/gap checklist — can reuse GapItem
+  from correction.py), #37 (Layer 7 confidence routing).
+- Doc-sync gaps from session 20 still pending (edit hooks block
+  data/README.md and WORKFLOW.md).
+
 === Session 20 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize

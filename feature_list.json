@@ -450,7 +450,7 @@
       "Verify an uncorrectable value (e.g. 'Lisinopril 200mg') is flagged for human review and added to the gap list for voice verification. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit tests assert all three confidence outcomes. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 35,
