@@ -762,9 +762,10 @@ All data prep and architecture decisions — zero application code:
 - PHASE_N_SPEC.md for each phase
 - PostgreSQL migration SQL ready
 - Neo4j Cypher seed scripts ready (ICD-10 subset, diagnosis-certification mappings, insurance rules)
-- Sample referral PDFs (3-4 with varying completeness and quality)
-- Caregiver roster data as JSON (20-30 caregivers)
-- Insurance rules data as JSON (4-5 payers, 2-3 plans each)
+- ~~Sample referral PDFs (3-4 with varying completeness and quality)~~ — **done as structured JSON**, see [`data/synthetic/sample_referrals.json`](data/synthetic/sample_referrals.json) (rendering to actual PDF/TIFF fax images is still open, see [`data/README.md`](data/README.md#next-steps-not-done-here--flagging-for-whoever-picks-this-up))
+- ~~Caregiver roster data as JSON (20-30 caregivers)~~ — **done**, see [`data/synthetic/caregiver_roster.json`](data/synthetic/caregiver_roster.json) (25 caregivers)
+- ~~Insurance rules data as JSON (4-5 payers, 2-3 plans each)~~ — **done**, see [`data/reference/payer_coverage_rules.json`](data/reference/payer_coverage_rules.json) (5 payers, 8 plans)
+- **New**: ICD-10 top-30 home health subset and diagnosis→service→certification mapping ready — see [`data/reference/`](data/reference/); still need to be loaded into Neo4j Cypher seed scripts / PostgreSQL migration SQL above
 - Twilio account created, phone number provisioned
 - Docker Compose file ready
 

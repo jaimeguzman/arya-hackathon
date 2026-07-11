@@ -8,7 +8,7 @@ This file has two parts:
 
 ## Part 1: Safety Layer Must-Haves (Non-Negotiable)
 
-> **Rule: These 5 guarantees must be enforced BY THE CODE ITSELF, on every single execution — not by a human remembering to check a box before a demo.**
+> **Rule: These 6 guarantees must be enforced BY THE CODE ITSELF, on every single execution — not by a human remembering to check a box before a demo.**
 > A manual checklist eventually gets skipped. The correct pattern is: the system automatically fails closed (refuses to run, throws an error, blocks the call) if any guarantee isn't met — no human step required. Each item below includes the actual enforcement mechanism that must live in the codebase, not just in a developer's memory.
 
 ### 1. Fake Data Only — No Real PHI Ever Touches the System
@@ -121,11 +121,30 @@ This file has two parts:
   - Because `speak()` only accepts a `SafeResponse` object (not a plain string), there is no code path where unfiltered LLM output can reach the caller — the type system itself blocks the bypass.
   - Add a CI test with a deliberately over-promising input string and assert the output never contains a banned phrase. This runs automatically on every build, not just before a demo.
 
+### 6. No Silent Call Drop — Every Failure State Degrades to Human Handoff
+
+- **Requirement:** No call may ever end in silence or a dropped connection because of an internal failure — a Voice Agent exception, an eligibility check timeout, a backend/LLM outage, or the agent repeatedly failing to understand the caller. Every one of these must degrade to a spoken handoff ("Let me connect you with a coordinator") followed by a human transfer or a scheduled callback — never a silent hang-up. This is distinct from the consent "no" path (must-have #4), which is a caller opt-out, not a failure — but both routes end at the same handoff mechanism.
+- **Implementation:** Every call-turn is wrapped in a try/except (or equivalent) boundary. Any unhandled exception, timeout, or a caller-confusion counter crossing a threshold (e.g. 2 failed clarification attempts) routes to the same `TransferToHuman` / scheduled-callback path already used by the consent "no" branch — not a new, untested path.
+  ```python
+  FALLBACK_MESSAGE = "I'm having trouble processing that. Let me connect you with a coordinator who can help right now."
+
+  def handle_turn(call_sid: str, caller_input: str):
+      try:
+          return voice_agent.process(call_sid, caller_input)
+      except Exception:
+          transfer_to_human_or_schedule_callback(call_sid)
+          return SafeResponse(FALLBACK_MESSAGE)
+  ```
+- **Code-enforced guarantee (not a manual check):**
+  - The Twilio call handler's top-level turn function has no code path that can return nothing or crash silently — every exception is caught at the outermost boundary and converted into a spoken fallback + a logged handoff action.
+  - A `clarification_attempts` counter is tracked per call; crossing a threshold triggers the same handoff path as an unhandled exception, so a caller can never get stuck in an infinite "I didn't understand that" loop.
+  - Add a CI test that force-raises an exception mid-turn and asserts the call still receives a spoken response and a logged handoff action — never an empty or dropped response. Runs on every build, same as the other 5.
+
 ---
 
 ### Safety Layer — How This Stays Enforced Automatically
 
-The design principle across all 5: **make the unsafe path impossible to reach in code, not just discouraged.**
+The design principle across all 6: **make the unsafe path impossible to reach in code, not just discouraged.**
 
 | # | Guarantee | Enforcement mechanism |
 |---|---|---|
@@ -134,8 +153,9 @@ The design principle across all 5: **make the unsafe path impossible to reach in
 | 3 | Eligibility is code-decided, not LLM-decided | `generate_agent_response()` requires a pre-computed status object; can't run without it |
 | 4 | Consent always comes first | `collect_patient_data()` requires `consent_given=True`; consent node is the only call entry point |
 | 5 | No over-promising reaches the caller | `speak()` only accepts a `SafeResponse` type, which filters on construction — can't bypass |
+| 6 | No silent call drop on failure | Every call-turn is wrapped in a try/except that routes to `TransferToHuman`/callback + spoken fallback; a confusion counter forces the same handoff after repeated misunderstanding |
 
-Add a single CI test suite (`test_safety_layer.py`) that runs all 5 assertions/unit tests on every commit. If any fails, the build fails — this replaces any reliance on someone remembering to check before a demo.
+Add a single CI test suite (`test_safety_layer.py`) that runs all 6 assertions/unit tests on every commit. If any fails, the build fails — this replaces any reliance on someone remembering to check before a demo.
 
 ---
 
