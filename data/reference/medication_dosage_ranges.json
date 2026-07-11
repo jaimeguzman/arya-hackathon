@@ -1,0 +1,15 @@
+{
+  "_source": "Typical adult per-dose ranges from FDA prescribing information, curated to the medications appearing in data/synthetic/sample_referrals.json plus common home-health medications. Used by the document pipeline Layer 5 Validation Agent to flag OCR-corrupted dosages (e.g. Metformin 50000mg).",
+  "_note": "Ranges are per single dose in mg, intentionally wide — they catch order-of-magnitude OCR errors, not clinical dosing decisions.",
+  "medications": [
+    { "name": "Metformin", "min_mg": 500, "max_mg": 2000 },
+    { "name": "Lisinopril", "min_mg": 2.5, "max_mg": 40 },
+    { "name": "Apixaban", "min_mg": 2.5, "max_mg": 10 },
+    { "name": "Warfarin", "min_mg": 1, "max_mg": 10 },
+    { "name": "Furosemide", "min_mg": 20, "max_mg": 80 },
+    { "name": "Atorvastatin", "min_mg": 10, "max_mg": 80 },
+    { "name": "Amlodipine", "min_mg": 2.5, "max_mg": 10 },
+    { "name": "Levothyroxine", "min_mg": 0.025, "max_mg": 0.3 },
+    { "name": "Gabapentin", "min_mg": 100, "max_mg": 1200 }
+  ]
+}
