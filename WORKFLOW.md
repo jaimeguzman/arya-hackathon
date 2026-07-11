@@ -4,9 +4,9 @@ Plain-English, step-by-step walkthrough of how a referral moves through the syst
 
 - [`PROJECT.md`](PROJECT.md) remains the product/architecture source of truth.
 - [`must-have.md`](must-have.md) remains the safety authority (the 6 non-negotiable guarantees referenced throughout this file).
-- [`architecture.md`](architecture.md) has the technical diagrams (mermaid flowcharts/sequence diagrams) this file narrates in prose.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) has the technical diagrams (mermaid flowcharts/sequence diagrams) this file narrates in prose.
 
-If this file and any of the above ever disagree, `PROJECT.md` > `must-have.md` > `architecture.md` win, in that order — update this file to match, not the other way around.
+If this file and any of the above ever disagree, `PROJECT.md` > `must-have.md` > `docs/ARCHITECTURE.md` win, in that order — update this file to match, not the other way around.
 
 ---
 
@@ -38,10 +38,10 @@ This section is a point-in-time status snapshot, not an evergreen part of the wo
 | Dashboard (React) | ✅ Done — see "Dashboard UI" / "Dashboard API" above. Live data needs Docker (Postgres) up. |
 | Twilio account/number provisioning | ⚠️ Unknown — `.env.example` has empty Twilio fields, can't verify from the repo; confirm with the team |
 
-### Two conflicts to resolve first (flagged, not silently resolved)
+### Conflicts
 
-1. **Duplicate seed data, only one copy is real.** [`data/`](data/) (reference/synthetic JSON + fax PDFs) and [`local/data/`](local/data/) (7 JSON files, different names/shape) both exist. **Only `local/data/` is actually loaded into the running databases** — `data/` is currently unused by any code. Reconcile into one source before the Eligibility Agent is built against it.
-2. **Folder structure mismatch.** [`architecture.md`](architecture.md#8-proposed-module-layout-not-yet-built--for-file-ownership-planning) §8 proposes code under `apis/`, `ai-agents/`, `infra/`, `apps/`, `services/`. The actual merged code lives under a separate `local/backend/` tree instead. Pick one before more code lands in two places.
+1. ~~**Duplicate seed data, only one copy is real.**~~ **Still open.** [`data/`](data/) (reference/synthetic JSON + fax PDFs) and [`local/data/`](local/data/) (7 JSON files, different names/shape) both exist. **Only `local/data/` is actually loaded into the running databases** — `data/` is currently unused by any code. Reconcile into one source before the Eligibility Agent is built against it. Owned by Task 3.
+2. ~~**Folder structure mismatch.**~~ **Resolved 2026-07-11.** Decision: all application code (FastAPI app, routes, services, agent prompts) extends `local/backend/`, reusing the working `config.py` and `models/database.py` already built there — not `apis/`/`ai-agents/`/`infra/`/`apps/`/`services/`. Those 5 folders stay doc-only (ownership/scope reference per `CLAUDE.md`) until/unless the team decides to migrate real code into them later. Rationale: avoids duplicating DB connection setup that already works; fastest path under hackathon time pressure. `docs/ARCHITECTURE.md` §8's proposed layout is stale against this decision — update it to point at `local/backend/` instead of `apis/`/`ai-agents/` when someone next touches that section.
 
 ### Four parallel tasks
 
@@ -51,8 +51,9 @@ Task 1 — Voice Agent
 Developer: Person 1
 Goal: Build the Twilio ConversationRelay voice handling for all 3 call modes with every safety gate from must-have.md wired in.
 Files Owned:
-- ai-agents/ (provider/family/outbound prompts + conversation flow specs)
-- apis/app/routes/voice.py, apis/app/main.py (FastAPI skeleton + WebSocket endpoint — coordinate with Task 4 on shared main.py structure)
+- local/backend/voice/ (prompts + conversation flow specs for provider/family/outbound modes)
+- local/backend/main.py (FastAPI skeleton + WebSocket endpoint — coordinate with Task 4 on shared main.py structure)
+- local/backend/api/voice.py (routes)
 Classes/Functions Owned:
 - Consent-gather node, tokenize()/rehydrate() wrapper, filter_response()/speak(), handle_turn() failure-handoff wrapper (must-have.md #6)
 Dependencies:
@@ -74,8 +75,8 @@ Task 2 — Document Pipeline
 Developer: Person 2
 Goal: Build the 7-layer extraction pipeline and prove it against the 3 real fax PDFs already in data/synthetic/referral_faxes/.
 Files Owned:
-- apis/app/routes/documents.py
-- Document pipeline module (layers 1-7: ingest, classify, OCR-route, extract, validate/correct/cross-reference, gap-check, confidence-score)
+- local/backend/api/documents.py (routes)
+- local/backend/pipeline/ (layers 1-7: ingest, classify, OCR-route, extract, validate/correct/cross-reference, gap-check, confidence-score)
 Classes/Functions Owned:
 - Validation Agent, Correction Agent, Cross-Reference Agent, confidence scoring
 Dependencies:
@@ -95,24 +96,22 @@ Expected Completion Criteria: All 3 sample fax PDFs process end-to-end; REF-1003
 Task 3 — Eligibility Agent + Data Reconciliation (BLOCKING — do first)
 
 Developer: Person 3
-Goal: Resolve the two conflicts found above, then build check_eligibility() as deterministic code per must-have.md #3.
+Goal: Resolve the remaining data-duplication conflict, then build check_eligibility() as deterministic code per must-have.md #3.
 Files Owned:
 - Reconciliation: decide data/ vs local/data/ as the single source, migrate/delete the loser, update the loader if needed
-- Reconciliation: decide local/backend/ vs apis/+infra/ as the real code location, migrate if needed
-- Eligibility service + POST /eligibility-check endpoint
+- local/backend/services/eligibility_service.py + local/backend/api/eligibility.py (POST /eligibility-check endpoint)
 Classes/Functions Owned:
 - check_eligibility(zip, payer, plan, service_type), generate_agent_response() gate
 Dependencies:
 - None — this unblocks everyone else, should start immediately
 Implementation Steps:
 1. Reconcile data/ vs local/data/ (pick one, document the decision in data/README.md)
-2. Reconcile folder structure (pick one, update architecture.md §8 to match reality)
-3. Neo4j traversal: diagnosis → service → certification → caregiver → area
-4. PostgreSQL queries: service area, insurance contract, caregiver availability
-5. Accept/decline/needs-more-info logic (bias toward needs-more-info on ambiguity)
-6. Unit test: clear-yes, clear-no, ambiguous case (must-have.md #3 CI requirement)
-Documentation To Update: data/README.md, architecture.md §8, PROJECT.md build plan
-Expected Completion Criteria: check_eligibility() returns correct ACCEPT/DECLINE/NEEDS_MORE_INFO for the 4 sample referral scenarios, in under 3 seconds, and the repo has exactly one seed-data source and one code-location convention.
+2. Neo4j traversal: diagnosis → service → certification → caregiver → area
+3. PostgreSQL queries: service area, insurance contract, caregiver availability
+4. Accept/decline/needs-more-info logic (bias toward needs-more-info on ambiguity)
+5. Unit test: clear-yes, clear-no, ambiguous case (must-have.md #3 CI requirement)
+Documentation To Update: data/README.md, PROJECT.md build plan
+Expected Completion Criteria: check_eligibility() returns correct ACCEPT/DECLINE/NEEDS_MORE_INFO for the 4 sample referral scenarios, in under 3 seconds, and the repo has exactly one seed-data source.
 ```
 
 ```
@@ -121,9 +120,9 @@ Task 4 — Orchestrator + Follow-up Agent + Dashboard scaffold
 Developer: Person 4
 Goal: LangGraph state machine tying everything together, plus outbound follow-up logic and a minimal dashboard shell.
 Files Owned:
-- apis/app/agents/orchestrator.py (LangGraph state machine)
-- services/ (Follow-up Agent: SMS, retry scheduling, escalation)
-- apps/dashboard/ (React shell — can start as static/mock until Tasks 1-3 have real endpoints)
+- local/backend/agents/orchestrator.py (LangGraph state machine)
+- local/backend/services/followup_service.py + local/backend/api/followup.py (Follow-up Agent: SMS, retry scheduling, escalation)
+- local/frontend/dashboard/ (React shell — can start as static/mock until Tasks 1-3 have real endpoints)
 Classes/Functions Owned:
 - Orchestrator routing logic, Follow-up Agent (retry-in-2-hours, escalate-after-3-attempts)
 Dependencies:
@@ -255,7 +254,7 @@ A real-time **dashboard** shows every referral's status, confidence scores per f
 
 | Question | Look in |
 |---|---|
-| Exact diagrams (mermaid flowcharts/sequence diagrams) for each flow described here | [`architecture.md`](architecture.md) |
+| Exact diagrams (mermaid flowcharts/sequence diagrams) for each flow described here | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Why this product exists, full data model, tech stack | [`PROJECT.md`](PROJECT.md) |
 | The 6 non-negotiable safety guarantees and their code-enforcement pattern | [`must-have.md`](must-have.md) Part 1 |
 | Seed/reference data (ICD-10 subset, caregiver roster, payer rules, sample referrals) | [`data/README.md`](data/README.md) |

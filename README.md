@@ -102,4 +102,16 @@ flowchart LR
 
 Full step-by-step diagrams (including safety-gated call flow): [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
-note: We had the conversation with Anand - reagrding the twillo - there was complaince issue so we couldn't submit the video.
+note: We had the conversation with Anand - reagrding the twillo - there was complaince issue so we couldn't submit the video. See [`docs/ELEVENLABS_MIGRATION.md`](docs/ELEVENLABS_MIGRATION.md) for the team's resulting decision to migrate off Twilio.
+
+---
+
+## Documentation
+
+- [`PROJECT.md`](./PROJECT.md) — source of truth: problem, architecture, and build plan for IntakeAI.
+- [`must-have.md`](./must-have.md) — non-negotiable safety layer (6 checks before every demo) and must-have features.
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — detailed architecture reference: diagrams and step-by-step flows.
+- [`WORKFLOW.md`](./WORKFLOW.md) — plain-English, end-to-end walkthrough of both entry channels (voice call and fax/PDF) plus a situation-handling cheat sheet.
+- [`data/README.md`](./data/README.md) — reference and synthetic seed data (ICD-10 subset, diagnosis/certification mappings, payer rules, caregiver roster, sample referrals), with sources and licensing notes.
+- [`docs/ELEVENLABS_MIGRATION.md`](docs/ELEVENLABS_MIGRATION.md) — the Twilio → ElevenLabs migration plan (`apis/` scope; `local/` is out of scope per the workspace boundary, reconciled at merge day).
+- See the [`docs`](./docs) folder for additional project documentation.

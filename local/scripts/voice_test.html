@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>IntakeAI — Local Voice Test</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; }
+  #log { border: 1px solid #ccc; border-radius: 8px; padding: 16px; min-height: 300px; margin-top: 20px; }
+  .caller { color: #0a5; margin: 8px 0; }
+  .agent { color: #05a; margin: 8px 0; }
+  button { font-size: 16px; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+  #talk { background: #0a5; color: white; border: none; }
+  #talk:disabled { background: #999; }
+  #status { color: #666; font-size: 14px; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <h2>IntakeAI — Local Voice Test</h2>
+  <p>Talks directly to <code>ws://localhost:8000/voice/stream</code> — the same backend built for Task 1. Uses your browser's built-in speech recognition + synthesis, no external service involved.</p>
+  <button id="talk">🎤 Hold to Talk</button>
+  <div id="status">Not connected</div>
+  <div id="log"></div>
+
+<script>
+const WS_URL = "ws://localhost:8000/voice/stream";
+const callSid = "CA_browser_test_" + Math.random().toString(36).slice(2, 8);
+const log = document.getElementById("log");
+const statusEl = document.getElementById("status");
+const talkBtn = document.getElementById("talk");
+
+function addLine(who, text) {
+  const div = document.createElement("div");
+  div.className = who;
+  div.textContent = (who === "caller" ? "You: " : "Agent: ") + text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function speak(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  window.speechSynthesis.speak(utterance);
+}
+
+const ws = new WebSocket(WS_URL);
+
+ws.onopen = () => {
+  statusEl.textContent = "Connected — sending setup";
+  ws.send(JSON.stringify({ type: "setup", callSid: callSid }));
+  statusEl.textContent = "Ready. Hold the button and speak.";
+};
+
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+  if (msg.type === "text") {
+    addLine("agent", msg.token);
+    speak(msg.token);
+  }
+};
+
+ws.onerror = () => { statusEl.textContent = "WebSocket error — is uvicorn running on :8000?"; };
+ws.onclose = () => { statusEl.textContent = "Call ended."; talkBtn.disabled = true; };
+
+// --- Speech recognition (push-to-talk) ---
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SpeechRecognition) {
+  statusEl.textContent = "Your browser doesn't support the Web Speech API — use Chrome.";
+  talkBtn.disabled = true;
+} else {
+  const recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    addLine("caller", transcript);
+    ws.send(JSON.stringify({ type: "prompt", voicePrompt: transcript }));
+  };
+
+  recognition.onerror = (event) => { statusEl.textContent = "Speech recognition error: " + event.error; };
+
+  talkBtn.addEventListener("mousedown", () => {
+    statusEl.textContent = "Listening...";
+    recognition.start();
+  });
+  talkBtn.addEventListener("mouseup", () => {
+    statusEl.textContent = "Processing...";
+  });
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # IntakeAI — Intelligent Patient Intake Agent for Home Health Agencies
 
-> This document is the architecture and product source of truth. [`must-have.md`](must-have.md) is its companion — the non-negotiable safety layer (6 checks, verified before every demo/test call) and the ranked app-level feature list. [`architecture.md`](architecture.md) is the diagram-and-steps reference derived from this document — use it for onboarding and implementation detail, but this file wins if they ever disagree. [`WORKFLOW.md`](WORKFLOW.md) is the plain-English end-to-end narration of both entry channels (voice + fax).
+> This document is the architecture and product source of truth. [`must-have.md`](must-have.md) is its companion — the non-negotiable safety layer (6 checks, verified before every demo/test call) and the ranked app-level feature list. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) is the diagram-and-steps reference derived from this document — use it for onboarding and implementation detail, but this file wins if they ever disagree. [`WORKFLOW.md`](WORKFLOW.md) is the plain-English end-to-end narration of both entry channels (voice + fax).
 
 ## Hackathon
 
@@ -14,9 +14,21 @@
 
 ---
 
+## ⚠️ Team Decision Log: Known Deviation from the Brief (2026-07-11)
+
+The team has knowingly decided **not to use Twilio** for telephony, replacing it with another voice provider (ElevenLabs Conversational AI, pending final implementation). This was a deliberate call made mid-build after repeated local setup friction with Twilio's console/webhook/ngrok flow during testing — not an oversight.
+
+**Consequence, stated plainly**: per the brief immediately below, this makes the project **ineligible for the Twilio sponsor prize track**. The Official Challenge Brief section is left completely unedited below because it is a verbatim record of the organizers' actual rules — it is not something the team gets to redefine by deciding not to follow it. This note exists so that fact is visible to every teammate and to the judges, not discovered as a surprise at demo time.
+
+If the team wants to reverse this decision before the final submission, Twilio is still fully wired up and working in `local/backend/api/voice.py` / `local/backend/voice/` (consent gather, mode routing, safety pipeline, and transcript persistence were all built and verified against it) — reverting means pointing the telephony layer back at Twilio, not rebuilding the conversation logic from scratch.
+
+---
+
 ## Official Challenge Brief (Strict — Do Not Deviate)
 
 This section is copied verbatim in substance from the hackathon organizers' brief. It is the binding rule set for what "done" means. Every planning and implementation decision must satisfy this before anything else — it overrides convenience, scope creep, or feature ideas not traceable back to it.
+
+**Status: the team has deviated from this brief's Twilio requirement — see the Team Decision Log above.**
 
 ### About the Challenge
 
