@@ -1,0 +1,50 @@
+{
+  "_note": "Hand-built mapping grounded in standard home health clinical practice (diagnosis -> required service types -> caregiver certifications). Codes are real ICD-10-CM; the mapping decisions themselves are authored for this project, not sourced from a public dataset, per PROJECT.md.",
+  "service_types": [
+    { "id": "skilled_nursing", "label": "Skilled Nursing", "abbrev": "SN", "base_role": ["RN", "LPN"] },
+    { "id": "physical_therapy", "label": "Physical Therapy", "abbrev": "PT", "base_role": ["PT"] },
+    { "id": "occupational_therapy", "label": "Occupational Therapy", "abbrev": "OT", "base_role": ["OT"] },
+    { "id": "speech_therapy", "label": "Speech-Language Pathology", "abbrev": "ST", "base_role": ["Speech Therapist"] },
+    { "id": "home_health_aide", "label": "Home Health Aide", "abbrev": "HHA", "base_role": ["HHA"] }
+  ],
+  "certification_types": [
+    "wound_care",
+    "iv_therapy",
+    "pediatric",
+    "cardiac",
+    "orthopedic",
+    "diabetes_education"
+  ],
+  "diagnosis_mappings": [
+    { "icd10": "I10", "required_services": ["skilled_nursing"], "required_certifications": ["cardiac"] },
+    { "icd10": "E11.9", "required_services": ["skilled_nursing"], "required_certifications": ["diabetes_education"] },
+    { "icd10": "E11.65", "required_services": ["skilled_nursing"], "required_certifications": ["diabetes_education"] },
+    { "icd10": "I50.9", "required_services": ["skilled_nursing"], "required_certifications": ["cardiac"] },
+    { "icd10": "I50.22", "required_services": ["skilled_nursing"], "required_certifications": ["cardiac"] },
+    { "icd10": "I25.10", "required_services": ["skilled_nursing"], "required_certifications": ["cardiac"] },
+    { "icd10": "I48.91", "required_services": ["skilled_nursing"], "required_certifications": ["cardiac"] },
+    { "icd10": "J44.9", "required_services": ["skilled_nursing"], "required_certifications": [] },
+    { "icd10": "J44.1", "required_services": ["skilled_nursing"], "required_certifications": [] },
+    { "icd10": "Z99.81", "required_services": ["skilled_nursing"], "required_certifications": [] },
+    { "icd10": "R06.02", "required_services": ["skilled_nursing"], "required_certifications": [] },
+    { "icd10": "I63.9", "required_services": ["skilled_nursing", "physical_therapy", "occupational_therapy", "speech_therapy"], "required_certifications": [] },
+    { "icd10": "G81.90", "required_services": ["skilled_nursing", "physical_therapy", "occupational_therapy"], "required_certifications": [] },
+    { "icd10": "F03.90", "required_services": ["skilled_nursing", "home_health_aide"], "required_certifications": [] },
+    { "icd10": "G20", "required_services": ["skilled_nursing", "physical_therapy", "occupational_therapy"], "required_certifications": [] },
+    { "icd10": "M17.11", "required_services": ["skilled_nursing", "physical_therapy"], "required_certifications": ["orthopedic"] },
+    { "icd10": "M16.11", "required_services": ["skilled_nursing", "physical_therapy"], "required_certifications": ["orthopedic"] },
+    { "icd10": "Z96.641", "required_services": ["skilled_nursing", "physical_therapy"], "required_certifications": ["orthopedic"] },
+    { "icd10": "Z96.652", "required_services": ["skilled_nursing", "physical_therapy"], "required_certifications": ["orthopedic"] },
+    { "icd10": "S72.001A", "required_services": ["skilled_nursing", "physical_therapy"], "required_certifications": ["orthopedic"] },
+    { "icd10": "Z51.89", "required_services": ["skilled_nursing"], "required_certifications": [] },
+    { "icd10": "Z48.815", "required_services": ["skilled_nursing", "physical_therapy"], "required_certifications": ["orthopedic"] },
+    { "icd10": "M54.50", "required_services": ["physical_therapy"], "required_certifications": [] },
+    { "icd10": "M62.81", "required_services": ["physical_therapy", "occupational_therapy", "home_health_aide"], "required_certifications": [] },
+    { "icd10": "R26.81", "required_services": ["physical_therapy", "occupational_therapy", "home_health_aide"], "required_certifications": [] },
+    { "icd10": "Z91.81", "required_services": ["physical_therapy", "occupational_therapy", "home_health_aide"], "required_certifications": [] },
+    { "icd10": "N18.3", "required_services": ["skilled_nursing"], "required_certifications": [] },
+    { "icd10": "N39.0", "required_services": ["skilled_nursing"], "required_certifications": ["iv_therapy"] },
+    { "icd10": "L89.153", "required_services": ["skilled_nursing"], "required_certifications": ["wound_care"] },
+    { "icd10": "E66.9", "required_services": ["skilled_nursing"], "required_certifications": ["diabetes_education"] }
+  ]
+}

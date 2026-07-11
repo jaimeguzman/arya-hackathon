@@ -1,0 +1,102 @@
+{
+  "_synthetic_data_notice": "SYNTHETIC TEST DATA - NOT REAL PHI. All patient names, DOBs, addresses, insurance IDs, and physician details below are fictional. Every record carries is_synthetic: true per must-have.md Part 1 Rule #1.",
+  "_note": "Represents the structured output the 7-layer document pipeline (PROJECT.md) would produce per referral, so the Eligibility Agent and dashboard can be built/tested against realistic shapes before real fax PDFs exist. Four scenarios cover varying completeness/quality per the pre-work plan (PROJECT.md > Hackathon Build Plan > Pre-work).",
+  "referrals": [
+    {
+      "referral_id": "REF-1001",
+      "scenario": "complete_clean_digital_pdf",
+      "channel": "fax",
+      "source_document_quality": "clean_digital_pdf",
+      "patient": { "name": "Eleanor Marsh", "dob": "1951-04-12", "gender": "F", "address": { "street": "142 Willow St", "city": "Brooklyn", "state": "NY", "zip": "11201" }, "phone": "555-010-2201", "is_synthetic": true },
+      "clinical": {
+        "primary_diagnosis": { "icd10": "Z96.641", "description": "Presence of right artificial hip joint" },
+        "secondary_diagnoses": [ { "icd10": "I10", "description": "Essential (primary) hypertension" } ],
+        "surgical_procedure": "Right total hip arthroplasty",
+        "medications": [ { "name": "Lisinopril", "dosage": "20mg", "frequency": "daily", "confidence": "high" } ],
+        "homebound_status": true,
+        "hospital_admission_date": "2026-07-01",
+        "hospital_discharge_date": "2026-07-06"
+      },
+      "physician": { "name": "Dr. Adam Kessler", "npi": "1932384123", "phone": "555-020-3301", "specialty": "Orthopedic Surgery", "face_to_face_date": "2026-07-05", "orders_signed": true },
+      "insurance": { "payer": "Medicare", "plan": "Medicare Part A", "member_id": "1EG4TE5MK73", "prior_auth_required": false },
+      "referral_source": { "facility_name": "Mount Sinai Hospital", "facility_type": "hospital", "contact_name": "Sarah Delgado", "contact_phone": "555-030-4401" },
+      "care_request": { "service_types": ["skilled_nursing", "physical_therapy"], "visit_frequency": "3x/week", "urgency": "routine" },
+      "extraction_confidence_summary": { "high": 12, "medium": 1, "low": 0 },
+      "gaps": []
+    },
+    {
+      "referral_id": "REF-1002",
+      "scenario": "missing_f2f_documentation",
+      "channel": "fax",
+      "source_document_quality": "clean_digital_pdf",
+      "patient": { "name": "Robert Ianelli", "dob": "1958-11-30", "gender": "M", "address": { "street": "88 Ridge Ave", "city": "Long Island City", "state": "NY", "zip": "11101" }, "phone": "555-011-2202", "is_synthetic": true },
+      "clinical": {
+        "primary_diagnosis": { "icd10": "I63.9", "description": "Cerebral infarction, unspecified (stroke)" },
+        "secondary_diagnoses": [ { "icd10": "G81.90", "description": "Hemiplegia, unspecified affecting unspecified side" } ],
+        "surgical_procedure": null,
+        "medications": [ { "name": "Apixaban", "dosage": "5mg", "frequency": "twice daily", "confidence": "high" } ],
+        "homebound_status": true,
+        "hospital_admission_date": "2026-06-28",
+        "hospital_discharge_date": "2026-07-04"
+      },
+      "physician": { "name": "Dr. Priya Subramaniam", "npi": "1699934211", "phone": "555-021-3302", "specialty": "Neurology", "face_to_face_date": null, "orders_signed": true },
+      "insurance": { "payer": "Humana", "plan": "Humana Gold Plus HMO", "member_id": "H120456789", "prior_auth_required": true },
+      "referral_source": { "facility_name": "NewYork-Presbyterian Queens", "facility_type": "hospital", "contact_name": "Marcus Devine", "contact_phone": "555-031-4402" },
+      "care_request": { "service_types": ["skilled_nursing", "physical_therapy", "occupational_therapy", "speech_therapy"], "visit_frequency": "5x/week", "urgency": "urgent" },
+      "extraction_confidence_summary": { "high": 10, "medium": 1, "low": 0 },
+      "gaps": [ { "field": "face_to_face_encounter_date", "reason": "Not present anywhere in the packet", "action": "Voice Agent to call referring provider and request F2F documentation" } ]
+    },
+    {
+      "referral_id": "REF-1003",
+      "scenario": "messy_scanned_fax_low_confidence_ocr",
+      "channel": "fax",
+      "source_document_quality": "scanned_image_smudged",
+      "patient": { "name": "Wanda Kowalczyk", "dob": "1945-02-18", "gender": "F", "address": { "street": "27 Featherbed Ln", "city": "Bronx", "state": "NY", "zip": "10456" }, "phone": "555-012-2203", "is_synthetic": true },
+      "clinical": {
+        "primary_diagnosis": { "icd10": "J44.1", "description": "COPD with (acute) exacerbation" },
+        "secondary_diagnoses": [ { "icd10": "Z99.81", "description": "Dependence on supplemental oxygen" } ],
+        "surgical_procedure": null,
+        "medications": [ { "name": "Lisinopril", "dosage": "200mg", "frequency": "daily", "confidence": "low", "flag": "Standard dosing is 2.5-40mg; likely OCR error for 20mg, not auto-corrected" } ],
+        "homebound_status": true,
+        "hospital_admission_date": "2026-07-02",
+        "hospital_discharge_date": "2026-07-08"
+      },
+      "physician": { "name": "Dr. Harold Ng", "npi": "1245O78823", "phone": "555-022-3303", "specialty": "Pulmonology", "face_to_face_date": "2026-07-07", "orders_signed": true, "flag": "NPI contains letter O where a digit is expected; likely OCR misread of 0, pending Luhn re-validation" },
+      "insurance": { "payer": "Aetna", "plan": "Aetna Medicare Advantage HMO", "member_id": "AE7O91234X", "prior_auth_required": true, "flag": "Member ID contains ambiguous O/0 character, medium confidence" },
+      "referral_source": { "facility_name": "Bronx-Lebanon Hospital", "facility_type": "hospital", "contact_name": "Denise Farrow", "contact_phone": "555-032-4403" },
+      "care_request": { "service_types": ["skilled_nursing"], "visit_frequency": "2x/week", "urgency": "urgent" },
+      "extraction_confidence_summary": { "high": 6, "medium": 3, "low": 2 },
+      "gaps": [
+        { "field": "medications[0].dosage", "reason": "Lisinopril 200mg outside clinical range, correction confidence low", "action": "Voice Agent to verify actual dosage on outbound call" },
+        { "field": "physician.npi", "reason": "OCR ambiguity on character 5 (O vs 0)", "action": "Cross-check against NPPES NPI registry API before auto-populating" },
+        { "field": "insurance.member_id", "reason": "OCR ambiguity on character 3 (O vs 0)", "action": "Confirm with referring provider or payer eligibility check" }
+      ]
+    },
+    {
+      "referral_id": "REF-1004",
+      "scenario": "family_call_minimal_info",
+      "channel": "voice_inbound_family",
+      "source_document_quality": null,
+      "patient": { "name": "Margaret Sullivan", "dob": null, "gender": "F", "address": { "street": null, "city": null, "state": "NY", "zip": "11226" }, "phone": null, "is_synthetic": true },
+      "clinical": {
+        "primary_diagnosis": { "icd10": "F03.90", "description": "Unspecified dementia without behavioral disturbance" },
+        "secondary_diagnoses": [],
+        "surgical_procedure": null,
+        "medications": [],
+        "homebound_status": null,
+        "hospital_admission_date": null,
+        "hospital_discharge_date": "2026-07-10 (approximate, per caller)"
+      },
+      "physician": { "name": null, "npi": null, "phone": null, "specialty": null, "face_to_face_date": null, "orders_signed": false },
+      "insurance": { "payer": "unknown", "plan": null, "member_id": null, "prior_auth_required": null },
+      "referral_source": { "facility_name": null, "facility_type": "family_member", "contact_name": "Kelly Sullivan (daughter)", "contact_phone": "555-013-2204" },
+      "care_request": { "service_types": ["skilled_nursing", "home_health_aide"], "visit_frequency": null, "urgency": "unknown, caller unsure" },
+      "extraction_confidence_summary": { "high": 1, "medium": 1, "low": 5 },
+      "gaps": [
+        { "field": "physician_referral", "reason": "No physician order yet; skilled care requires one", "action": "Coordinator to help family obtain physician order; preliminary eligibility check only" },
+        { "field": "insurance", "reason": "Caller did not have insurance card available during call", "action": "Follow-up SMS with document upload link; coordinator to call back 9am next business day" },
+        { "field": "patient.address", "reason": "Caller only knew approximate zip", "action": "Confirm exact address during coordinator follow-up" }
+      ]
+    }
+  ]
+}

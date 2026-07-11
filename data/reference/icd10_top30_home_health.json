@@ -1,0 +1,40 @@
+{
+  "_source": "Real ICD-10-CM codes, FY2026 code set (CMS/CDC). Curated to the diagnoses most frequently seen in home health referrals, per CMS home health utilization data and industry coding guides.",
+  "_references": [
+    "https://www.cms.gov/medicare/coding-billing/icd-10-codes",
+    "https://www.cdc.gov/nchs/icd/icd-10-cm/files.html",
+    "https://trilogyqualityassurance.com/blog/most-common-diagnoses-in-home-health-care/"
+  ],
+  "codes": [
+    { "code": "I10", "description": "Essential (primary) hypertension", "category": "cardiac" },
+    { "code": "E11.9", "description": "Type 2 diabetes mellitus without complications", "category": "endocrine" },
+    { "code": "E11.65", "description": "Type 2 diabetes mellitus with hyperglycemia", "category": "endocrine" },
+    { "code": "I50.9", "description": "Heart failure, unspecified", "category": "cardiac" },
+    { "code": "I50.22", "description": "Chronic systolic (congestive) heart failure", "category": "cardiac" },
+    { "code": "I25.10", "description": "Atherosclerotic heart disease of native coronary artery without angina pectoris", "category": "cardiac" },
+    { "code": "I48.91", "description": "Unspecified atrial fibrillation", "category": "cardiac" },
+    { "code": "J44.9", "description": "Chronic obstructive pulmonary disease, unspecified", "category": "respiratory" },
+    { "code": "J44.1", "description": "Chronic obstructive pulmonary disease with (acute) exacerbation", "category": "respiratory" },
+    { "code": "Z99.81", "description": "Dependence on supplemental oxygen", "category": "respiratory" },
+    { "code": "R06.02", "description": "Shortness of breath", "category": "respiratory" },
+    { "code": "I63.9", "description": "Cerebral infarction, unspecified (stroke)", "category": "neuro" },
+    { "code": "G81.90", "description": "Hemiplegia, unspecified affecting unspecified side", "category": "neuro" },
+    { "code": "F03.90", "description": "Unspecified dementia without behavioral disturbance", "category": "neuro" },
+    { "code": "G20", "description": "Parkinson's disease", "category": "neuro" },
+    { "code": "M17.11", "description": "Unilateral primary osteoarthritis, right knee", "category": "musculoskeletal" },
+    { "code": "M16.11", "description": "Unilateral primary osteoarthritis, right hip", "category": "musculoskeletal" },
+    { "code": "Z96.641", "description": "Presence of right artificial hip joint", "category": "musculoskeletal" },
+    { "code": "Z96.652", "description": "Presence of left artificial knee joint", "category": "musculoskeletal" },
+    { "code": "S72.001A", "description": "Fracture of unspecified part of neck of right femur, initial encounter for closed fracture", "category": "musculoskeletal" },
+    { "code": "Z51.89", "description": "Encounter for other specified aftercare", "category": "aftercare" },
+    { "code": "Z48.815", "description": "Encounter for surgical aftercare following surgery on the musculoskeletal system", "category": "aftercare" },
+    { "code": "M54.50", "description": "Low back pain, unspecified", "category": "musculoskeletal" },
+    { "code": "M62.81", "description": "Muscle weakness (generalized)", "category": "mobility" },
+    { "code": "R26.81", "description": "Unsteadiness on feet", "category": "mobility" },
+    { "code": "Z91.81", "description": "History of falling", "category": "mobility" },
+    { "code": "N18.3", "description": "Chronic kidney disease, stage 3 (moderate)", "category": "renal" },
+    { "code": "N39.0", "description": "Urinary tract infection, site not specified", "category": "infection" },
+    { "code": "L89.153", "description": "Pressure ulcer of sacral region, stage 3", "category": "wound" },
+    { "code": "E66.9", "description": "Obesity, unspecified", "category": "endocrine" }
+  ]
+}

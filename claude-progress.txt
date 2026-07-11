@@ -1,0 +1,72 @@
+=== Session 2 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Unblocked session-1 items: created apis/.venv, installed all Python deps
+   (pip works outside the sandbox), committed .env.example.
+2. Feature #2 (FastAPI skeleton) VERIFIED and marked passing:
+   - Added missing pins to apis/requirements.txt: langgraph, redis,
+     psycopg[binary], neo4j.
+   - pytest: 2 passed, coverage 81%.
+   - Started uvicorn, GET /health -> 200 with per-dependency status
+     (postgres/neo4j/redis report "not_configured" without a .env — expected).
+3. Feature #3 (React dashboard scaffold) IMPLEMENTED, VERIFIED, marked passing:
+   - apps/dashboard scaffolded with Vite + React 19 + TypeScript.
+   - package.json: scripts dev/build/lint/type-check, engines.node >= 20.
+   - npm run lint, type-check, build all pass with zero errors.
+   - npm run dev -> HTTP 200 on http://localhost:5173/.
+
+Status: 2/113 features passing.
+
+Environment notes for next session:
+- Docker daemon NOT running — features #1/#4/#5 cannot be end-to-end verified
+  until Docker Desktop is started; file-level steps can still be prepared.
+- Sandbox blocks pip/npm network and server listen; use non-sandboxed runs for
+  installs and short-lived server checks.
+- pkill patterns must be specific; prefer `cmd & PID=$!; ...; kill $PID`.
+
+Recommended next work (dependency order):
+- infra/docker-compose.yml + Postgres migrations + Neo4j seeds (features
+  #1/#4/#5 file-level steps) so they verify instantly once Docker is up.
+- Safety guarantees #11-#17 (test_safety_layer.py) — must-have.md Part 1
+  gates everything else.
+- Then eligibility agent and intake API endpoints.
+
+=== Session 1 — Initializer (2026-07-11) ===
+
+Branch: autonomous-coder/initialize (non-protected; git was already initialized)
+
+Done this session:
+1. Read app_spec.txt and all repo .md docs (PROJECT.md is source of truth;
+   must-have.md is the safety authority — 6 code-enforced guarantees).
+2. Created feature_list.json: 113 features derived strictly from app_spec.txt
+   (categories: setup, agent, api, ui, functional, style; 5 tests with 10+ steps;
+   all "passes": false). Generator kept at scripts/generate_feature_list.py for
+   traceability — NEVER edit or remove features, only flip passes to true.
+3. Created init.sh (Docker Compose DBs, backend venv, dashboard npm install,
+   next-step instructions). Syntax-checked with bash -n.
+4. Created .env.example documenting all required env vars (DATABASE_URL, NEO4J_*,
+   REDIS_URL, TWILIO_*, GEMINI_API_KEY, PUBLIC_BASE_URL).
+5. Project structure already existed (ai-agents/, apis/, apps/, services/, infra/,
+   data/, docs/) — not recreated.
+6. Started feature #2 (FastAPI skeleton): apis/app (config from env via
+   pydantic-settings, /health with per-dependency TCP status for postgres/neo4j/
+   redis), apis/tests/test_health.py, requirements.txt, pytest.ini.
+
+BLOCKED / for the next agent:
+- .env.example was created on disk but could NOT be committed: the sandbox
+  read-deny on .env.* prevents git from stating the file. Commit it manually
+  (git add .env.example) from an unrestricted shell.
+- Could not install Python deps: sandbox blocks files.pythonhosted.org and the
+  non-sandbox override was denied. Therefore tests were NOT run and feature #2
+  stays "passes": false. First action next session: pip install -r
+  apis/requirements.txt in apis/.venv, run pytest --cov=app (2 tests exist),
+  then verify feature #2's steps and mark it passing if all pass.
+- Exit criteria (100% features passing, >=80% coverage) not met — expected for
+  session 1; foundation is in place.
+- Recommended next features (dependency order): setup #4/#5 (Postgres migrations,
+  Neo4j seeds), safety guarantees #11-#17 (test_safety_layer.py gates everything),
+  then eligibility agent.
+- Per CLAUDE.md, documentation must be updated with implementation; PROJECT.md /
+  docs/ARCHITECTURE.md were not modified this session (no architectural changes).
