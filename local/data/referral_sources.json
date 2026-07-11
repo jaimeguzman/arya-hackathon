@@ -1,0 +1,57 @@
+[
+  {
+    "facility_name": "Mount Sinai Hospital",
+    "facility_type": "hospital",
+    "contact_name": "Sarah Chen",
+    "phone": "+12125550101",
+    "fax": "+12125550102",
+    "email": "sarah.chen@mountsinai.demo",
+    "ehr_system": "Epic",
+    "totalReferrals": 48,
+    "acceptedReferrals": 36
+  },
+  {
+    "facility_name": "NYU Langone Health",
+    "facility_type": "hospital",
+    "contact_name": "Dr. James Park",
+    "phone": "+12125550201",
+    "fax": "+12125550202",
+    "email": "james.park@nyulangone.demo",
+    "ehr_system": "Epic",
+    "totalReferrals": 42,
+    "acceptedReferrals": 31
+  },
+  {
+    "facility_name": "Brooklyn Methodist Hospital",
+    "facility_type": "hospital",
+    "contact_name": "Maria Lopez",
+    "phone": "+17185550301",
+    "fax": "+17185550302",
+    "email": "maria.lopez@bmh.demo",
+    "ehr_system": "Cerner",
+    "totalReferrals": 27,
+    "acceptedReferrals": 19
+  },
+  {
+    "facility_name": "Sunrise Senior Living",
+    "facility_type": "snf",
+    "contact_name": "Robert Kim",
+    "phone": "+17185550401",
+    "fax": "+17185550402",
+    "email": "robert.kim@sunrise.demo",
+    "ehr_system": "PointClickCare",
+    "totalReferrals": 18,
+    "acceptedReferrals": 14
+  },
+  {
+    "facility_name": "Dr. Patricia Williams Primary Care",
+    "facility_type": "physician_office",
+    "contact_name": "Patricia Williams",
+    "phone": "+17185550501",
+    "fax": "+17185550502",
+    "email": "patricia.williams@pcp.demo",
+    "ehr_system": "athenahealth",
+    "totalReferrals": 12,
+    "acceptedReferrals": 9
+  }
+]
