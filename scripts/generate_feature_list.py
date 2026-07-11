@@ -250,10 +250,27 @@ add("agent", "ai-agents", "Consent gather node: AI + recording disclosure, yes/n
     f"Verify 'no' routes to transfer/graceful end with zero data collection. {OK}",
     f"Test both branches via the simulated call harness. {OK}",
 ])
-add("agent", "ai-agents", "Caller type detection routing to Provider / Family / Patient modes", "core_features/inbound_call_handling", [
+add("agent", "ai-agents", "Caller type detection routing to Provider / Family / Patient modes (WORKFLOW Path A Step 3)", "core_features/inbound_call_handling", [
+    f"Verify detection runs only after consent_given=true, so no classification or data collection precedes consent. {OK}",
     f"Verify early-turn classification assigns provider, family, or patient mode from caller statements. {OK}",
-    f"Verify the mode selects the corresponding static system prompt (Layer 1 control). {OK}",
-    f"Tests assert each mode is selected from representative utterances. {OK}",
+    f"Verify the mode selects the corresponding static system prompt (Layer 1 control) and is persisted as call.mode in Redis. {OK}",
+    f"Verify a caller who self-identifies ('I'm the discharge planner', 'I'm his daughter', 'I need care for myself') maps to the correct mode. {OK}",
+    f"Verify inbound is never routed to Outbound mode — Outbound is reserved for agency-initiated calls carrying a mission parameter. {OK}",
+    f"Tests assert each mode is selected from representative utterances for provider, family, and patient. {OK}",
+])
+add("agent", "ai-agents", "Caller type detection: ambiguous or low-confidence classification handling (WORKFLOW Path A Step 3)", "core_features/inbound_call_handling", [
+    f"Verify an ambiguous opening (caller type unclear) triggers one neutral clarifying question rather than guessing a mode. {OK}",
+    f"Verify classification confidence is recorded on the call record and low confidence keeps the safe default mode. {OK}",
+    f"Verify the default mode when still unresolved is the most cautious (Family/plain-language, never-promise) profile. {OK}",
+    f"Verify repeated failure to resolve caller type increments clarification_attempts and can reach the human handoff path (guarantee 6). {OK}",
+    f"Test asserts an ambiguous utterance yields a clarifying question and the cautious default, not a random mode. {OK}",
+])
+add("agent", "ai-agents", "Mid-call mode switch when caller type becomes clearer (WORKFLOW Path A Step 3)", "core_features/inbound_call_handling", [
+    f"Verify a later turn revealing the true caller type re-assigns call.mode and swaps to the corresponding system prompt. {OK}",
+    f"Verify a mode switch preserves already-collected structured fields in call state (no data loss on switch). {OK}",
+    f"Verify each mode transition is logged with old_mode, new_mode, and the triggering turn for dashboard visibility. {OK}",
+    f"Verify a switch never bypasses the 4 safety gates on subsequent turns. {OK}",
+    f"Test asserts a family->provider switch mid-call keeps prior fields and applies the new prompt. {OK}",
 ])
 add("agent", "ai-agents", "Provider mode: clinical, structured intake with real-time eligibility mid-call", "agent_architecture/voice_agent", [
     f"Verify provider mode collects name, DOB, diagnosis, insurance, zip in a structured flow. {OK}",

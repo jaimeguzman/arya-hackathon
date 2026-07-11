@@ -11,6 +11,14 @@ Backend services for IntakeAI — the FastAPI application layer, HTTP/WebSocket 
 
 See [`../PROJECT.md`](../PROJECT.md) for the full architecture, data model, and workflows. This folder owns application code only.
 
+## Encapsulation
+
+Every API lives in its own named subfolder — one folder per API — never loose at the `apis/` root (see the root [`../CLAUDE.md`](../CLAUDE.md) "API encapsulation rule"). Each API owns its own `app/`, `tests/`, `pytest.ini`, and `requirements.txt` inside its folder.
+
+Current APIs:
+
+- [`api_intake/`](api_intake) — core IntakeAI backend: FastAPI app, safety layer, and orchestration wiring.
+
 ## Tech stack
 
 - **Backend**: FastAPI (Python)
@@ -19,16 +27,20 @@ See [`../PROJECT.md`](../PROJECT.md) for the full architecture, data model, and 
 - **Telephony**: Twilio ConversationRelay (voice), Twilio Programmable SMS
 - **Data access**: PostgreSQL, Neo4j, Redis, pgvector
 
-## Structure (proposed)
+## Structure
 
 ```
 apis/
-├── app/                 # FastAPI application
-│   ├── main.py          # App entrypoint, routers, health checks
-│   ├── agents/          # Orchestrator + sub-agents (LangGraph)
-│   ├── routes/          # HTTP + WebSocket endpoints
-│   └── db/              # Database clients and queries
-├── tests/               # API and agent tests
+├── api_intake/          # Core IntakeAI backend API (one folder per API)
+│   ├── app/             # FastAPI application
+│   │   ├── main.py      # App entrypoint, routers, health checks
+│   │   ├── config.py    # Environment-driven settings
+│   │   ├── routes/      # HTTP + WebSocket endpoints
+│   │   └── safety/      # Non-negotiable safety layer (must-have.md Part 1)
+│   ├── tests/           # API and safety tests
+│   ├── pytest.ini
+│   └── requirements.txt
+├── CLAUDE.md
 └── README.md
 ```
 

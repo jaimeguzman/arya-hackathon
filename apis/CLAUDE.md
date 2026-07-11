@@ -2,6 +2,12 @@
 
 Rules for working inside the `apis/` folder. Inherits every rule from the root [`../CLAUDE.md`](../CLAUDE.md) and [`../PROJECT.md`](../PROJECT.md). This file adds folder-specific guidance only.
 
+## API encapsulation (non-negotiable)
+
+- Every API MUST live inside its own named subfolder — one folder per API — e.g. `apis/api_intake/`, `apis/api_twilio/`. Never place API code, `app/`, `tests/`, or loose files directly at the root of `apis/`.
+- Each API owns its own `app/`, `tests/`, `pytest.ini`, and `requirements.txt` inside its folder.
+- Only folder-level docs (`CLAUDE.md`, `README.md`) live at the `apis/` root.
+
 ## Ownership boundaries
 
 - This folder owns the backend application: FastAPI app, endpoints, orchestrator, and sub-agents.

@@ -551,17 +551,50 @@
     "id": 42,
     "category": "agent",
     "app": "ai-agents",
-    "description": "Caller type detection routing to Provider / Family / Patient modes",
+    "description": "Caller type detection routing to Provider / Family / Patient modes (WORKFLOW Path A Step 3)",
     "spec_reference": "core_features/inbound_call_handling",
     "steps": [
+      "Verify detection runs only after consent_given=true, so no classification or data collection precedes consent. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify early-turn classification assigns provider, family, or patient mode from caller statements. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify the mode selects the corresponding static system prompt (Layer 1 control). Expected result: the command/check completes successfully with no blocking errors.",
-      "Tests assert each mode is selected from representative utterances. Expected result: the command/check completes successfully with no blocking errors."
+      "Verify the mode selects the corresponding static system prompt (Layer 1 control) and is persisted as call.mode in Redis. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a caller who self-identifies ('I'm the discharge planner', 'I'm his daughter', 'I need care for myself') maps to the correct mode. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify inbound is never routed to Outbound mode \u2014 Outbound is reserved for agency-initiated calls carrying a mission parameter. Expected result: the command/check completes successfully with no blocking errors.",
+      "Tests assert each mode is selected from representative utterances for provider, family, and patient. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
   },
   {
     "id": 43,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Caller type detection: ambiguous or low-confidence classification handling (WORKFLOW Path A Step 3)",
+    "spec_reference": "core_features/inbound_call_handling",
+    "steps": [
+      "Verify an ambiguous opening (caller type unclear) triggers one neutral clarifying question rather than guessing a mode. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify classification confidence is recorded on the call record and low confidence keeps the safe default mode. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the default mode when still unresolved is the most cautious (Family/plain-language, never-promise) profile. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify repeated failure to resolve caller type increments clarification_attempts and can reach the human handoff path (guarantee 6). Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts an ambiguous utterance yields a clarifying question and the cautious default, not a random mode. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 44,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Mid-call mode switch when caller type becomes clearer (WORKFLOW Path A Step 3)",
+    "spec_reference": "core_features/inbound_call_handling",
+    "steps": [
+      "Verify a later turn revealing the true caller type re-assigns call.mode and swaps to the corresponding system prompt. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a mode switch preserves already-collected structured fields in call state (no data loss on switch). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify each mode transition is logged with old_mode, new_mode, and the triggering turn for dashboard visibility. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a switch never bypasses the 4 safety gates on subsequent turns. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts a family->provider switch mid-call keeps prior fields and applies the new prompt. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 45,
     "category": "agent",
     "app": "ai-agents",
     "description": "Provider mode: clinical, structured intake with real-time eligibility mid-call",
@@ -580,7 +613,7 @@
     "passes": false
   },
   {
-    "id": 44,
+    "id": 46,
     "category": "agent",
     "app": "ai-agents",
     "description": "Family mode: compassionate plain language, never promises coverage",
@@ -593,7 +626,7 @@
     "passes": false
   },
   {
-    "id": 45,
+    "id": 47,
     "category": "agent",
     "app": "ai-agents",
     "description": "Patient mode: slower pace, explains physician order requirement",
@@ -606,7 +639,7 @@
     "passes": false
   },
   {
-    "id": 46,
+    "id": 48,
     "category": "agent",
     "app": "ai-agents",
     "description": "Outbound mode: single-mission calls (collect document, verify detail, schedule visit)",
@@ -619,7 +652,7 @@
     "passes": false
   },
   {
-    "id": 47,
+    "id": 49,
     "category": "agent",
     "app": "apis",
     "description": "Real-time structured extraction from caller speech into the call state",
@@ -632,7 +665,7 @@
     "passes": false
   },
   {
-    "id": 48,
+    "id": 50,
     "category": "agent",
     "app": "apis",
     "description": "4-gate safety flow on every conversation turn",
@@ -645,7 +678,7 @@
     "passes": false
   },
   {
-    "id": 49,
+    "id": 51,
     "category": "agent",
     "app": "apis",
     "description": "Filler speech when the eligibility loop exceeds 2-3 seconds",
@@ -657,7 +690,7 @@
     "passes": false
   },
   {
-    "id": 50,
+    "id": 52,
     "category": "agent",
     "app": "apis",
     "description": "Clarification attempts counter with threshold-triggered human handoff",
@@ -670,7 +703,7 @@
     "passes": false
   },
   {
-    "id": 51,
+    "id": 53,
     "category": "functional",
     "app": "apis",
     "description": "Call transcript capture and consent flag persisted per call",
@@ -682,7 +715,7 @@
     "passes": false
   },
   {
-    "id": 52,
+    "id": 54,
     "category": "agent",
     "app": "apis",
     "description": "LangGraph orchestrator state machine: received -> processed -> decided lifecycle",
@@ -695,7 +728,7 @@
     "passes": false
   },
   {
-    "id": 53,
+    "id": 55,
     "category": "agent",
     "app": "apis",
     "description": "Orchestrator routing between pipeline, eligibility, and voice actions",
@@ -708,7 +741,7 @@
     "passes": false
   },
   {
-    "id": 54,
+    "id": 56,
     "category": "agent",
     "app": "apis",
     "description": "Merge logic: document + voice data into one unified intake record",
@@ -721,7 +754,7 @@
     "passes": false
   },
   {
-    "id": 55,
+    "id": 57,
     "category": "functional",
     "app": "apis",
     "description": "Intake record status lifecycle with timestamps for every event",
@@ -734,7 +767,7 @@
     "passes": false
   },
   {
-    "id": 56,
+    "id": 58,
     "category": "functional",
     "app": "apis",
     "description": "Audit trail: every decision logged with the data that informed it",
@@ -747,7 +780,7 @@
     "passes": false
   },
   {
-    "id": 57,
+    "id": 59,
     "category": "functional",
     "app": "apis",
     "description": "ACID protection against double-accepting a patient",
@@ -759,7 +792,7 @@
     "passes": false
   },
   {
-    "id": 58,
+    "id": 60,
     "category": "agent",
     "app": "services",
     "description": "Follow-up Agent: SMS confirmations via Twilio Programmable SMS",
@@ -771,7 +804,7 @@
     "passes": false
   },
   {
-    "id": 59,
+    "id": 61,
     "category": "agent",
     "app": "services",
     "description": "Document request links via SMS/email",
@@ -783,7 +816,7 @@
     "passes": false
   },
   {
-    "id": 60,
+    "id": 62,
     "category": "agent",
     "app": "services",
     "description": "Retry logic: voicemail -> 2h retry, silent SMS -> next morning, 3 failures -> human escalation",
@@ -797,7 +830,7 @@
     "passes": false
   },
   {
-    "id": 61,
+    "id": 63,
     "category": "agent",
     "app": "services",
     "description": "Outbound call trigger re-enters the safety-gated flow",
@@ -809,7 +842,7 @@
     "passes": false
   },
   {
-    "id": 62,
+    "id": 64,
     "category": "agent",
     "app": "services",
     "description": "Callback scheduling with POST /follow-up/schedule",
@@ -821,7 +854,7 @@
     "passes": false
   },
   {
-    "id": 63,
+    "id": 65,
     "category": "agent",
     "app": "services",
     "description": "Scheduler worker service processing the Redis retry queue",
@@ -834,7 +867,7 @@
     "passes": false
   },
   {
-    "id": 64,
+    "id": 66,
     "category": "api",
     "app": "apis",
     "description": "GET /health with per-dependency status",
@@ -846,7 +879,7 @@
     "passes": false
   },
   {
-    "id": 65,
+    "id": 67,
     "category": "api",
     "app": "apis",
     "description": "POST /eligibility-check returns status with reasons",
@@ -859,7 +892,7 @@
     "passes": false
   },
   {
-    "id": 66,
+    "id": 68,
     "category": "api",
     "app": "apis",
     "description": "POST /process-document runs the 7-layer pipeline",
@@ -871,7 +904,7 @@
     "passes": false
   },
   {
-    "id": 67,
+    "id": 69,
     "category": "api",
     "app": "apis",
     "description": "GET /intakes lists referrals with status for the dashboard",
@@ -883,7 +916,7 @@
     "passes": false
   },
   {
-    "id": 68,
+    "id": 70,
     "category": "api",
     "app": "apis",
     "description": "GET /intakes/:id returns the full intake record",
@@ -895,7 +928,7 @@
     "passes": false
   },
   {
-    "id": 69,
+    "id": 71,
     "category": "api",
     "app": "apis",
     "description": "GET /intakes/:id/gaps returns the gap list with follow-up status",
@@ -906,7 +939,7 @@
     "passes": false
   },
   {
-    "id": 70,
+    "id": 72,
     "category": "api",
     "app": "apis",
     "description": "GET /intakes/:id/transcript returns call transcripts",
@@ -917,7 +950,7 @@
     "passes": false
   },
   {
-    "id": 71,
+    "id": 73,
     "category": "api",
     "app": "apis",
     "description": "GET /analytics/referral-sources: volume, acceptance rate, response times",
@@ -929,7 +962,7 @@
     "passes": false
   },
   {
-    "id": 72,
+    "id": 74,
     "category": "api",
     "app": "apis",
     "description": "GET /analytics/time-to-decision speed metrics",
@@ -940,7 +973,7 @@
     "passes": false
   },
   {
-    "id": 73,
+    "id": 75,
     "category": "api",
     "app": "apis",
     "description": "GET /caregivers/matches/:intake_id with selection/rejection reasons",
@@ -951,7 +984,7 @@
     "passes": false
   },
   {
-    "id": 74,
+    "id": 76,
     "category": "api",
     "app": "apis",
     "description": "Twilio webhook signature validation on inbound HTTP webhooks",
@@ -963,7 +996,7 @@
     "passes": false
   },
   {
-    "id": 75,
+    "id": 77,
     "category": "api",
     "app": "apis",
     "description": "Consistent error envelope and no-PHI error messages across the API",
@@ -975,7 +1008,7 @@
     "passes": false
   },
   {
-    "id": 76,
+    "id": 78,
     "category": "functional",
     "app": "apis",
     "description": "Returning caller recognition from referral source phone number",
@@ -988,7 +1021,7 @@
     "passes": false
   },
   {
-    "id": 77,
+    "id": 79,
     "category": "functional",
     "app": "apis",
     "description": "Referral source history: count, acceptance rate, preferred communication method",
@@ -1000,7 +1033,7 @@
     "passes": false
   },
   {
-    "id": 78,
+    "id": 80,
     "category": "functional",
     "app": "apis",
     "description": "Cross-interaction context: prior family call informs today's follow-up",
@@ -1012,7 +1045,7 @@
     "passes": false
   },
   {
-    "id": 79,
+    "id": 81,
     "category": "functional",
     "app": "ai-agents",
     "description": "Clinical guardrail: never gives medical advice",
@@ -1024,7 +1057,7 @@
     "passes": false
   },
   {
-    "id": 80,
+    "id": 82,
     "category": "functional",
     "app": "ai-agents",
     "description": "Operational guardrail: no admission promise before eligibility confirms; human named as final confirmer",
@@ -1037,7 +1070,7 @@
     "passes": false
   },
   {
-    "id": 81,
+    "id": 83,
     "category": "functional",
     "app": "ai-agents",
     "description": "Escalation on low confidence or complexity",
@@ -1049,7 +1082,7 @@
     "passes": false
   },
   {
-    "id": 82,
+    "id": 84,
     "category": "functional",
     "app": "apis",
     "description": "Field-level traceability: every extracted field maps to source document and page",
@@ -1061,7 +1094,7 @@
     "passes": false
   },
   {
-    "id": 83,
+    "id": 85,
     "category": "ui",
     "app": "apps",
     "description": "Pipeline board: referrals by status with timestamps and urgency badges",
@@ -1074,7 +1107,7 @@
     "passes": false
   },
   {
-    "id": 84,
+    "id": 86,
     "category": "ui",
     "app": "apps",
     "description": "Referral detail view with confidence color coding (green/yellow/red)",
@@ -1087,7 +1120,7 @@
     "passes": false
   },
   {
-    "id": 85,
+    "id": 87,
     "category": "ui",
     "app": "apps",
     "description": "Gap list panel with per-gap action history",
@@ -1099,7 +1132,7 @@
     "passes": false
   },
   {
-    "id": 86,
+    "id": 88,
     "category": "ui",
     "app": "apps",
     "description": "Transcript panel: full transcripts, consent status, caller mode",
@@ -1111,7 +1144,7 @@
     "passes": false
   },
   {
-    "id": 87,
+    "id": 89,
     "category": "ui",
     "app": "apps",
     "description": "Caregiver match panel with selection/rejection reasons",
@@ -1123,7 +1156,7 @@
     "passes": false
   },
   {
-    "id": 88,
+    "id": 90,
     "category": "ui",
     "app": "apps",
     "description": "Analytics view: referral source volume, acceptance rates, time-to-decision",
@@ -1135,7 +1168,7 @@
     "passes": false
   },
   {
-    "id": 89,
+    "id": 91,
     "category": "ui",
     "app": "apps",
     "description": "Needs-review queue for flagged medium/low confidence fields and escalations",
@@ -1147,7 +1180,7 @@
     "passes": false
   },
   {
-    "id": 90,
+    "id": 92,
     "category": "ui",
     "app": "apps",
     "description": "Live/refreshing pipeline status so demo updates are visible",
@@ -1159,7 +1192,7 @@
     "passes": false
   },
   {
-    "id": 91,
+    "id": 93,
     "category": "ui",
     "app": "apps",
     "description": "Document upload UI feeding POST /process-document for the fax demo",
@@ -1171,7 +1204,7 @@
     "passes": false
   },
   {
-    "id": 92,
+    "id": 94,
     "category": "style",
     "app": "apps",
     "description": "Consistent design system: colors, typography, spacing tokens",
@@ -1183,7 +1216,7 @@
     "passes": false
   },
   {
-    "id": 93,
+    "id": 95,
     "category": "style",
     "app": "apps",
     "description": "Status and confidence color semantics consistent across the app",
@@ -1194,7 +1227,7 @@
     "passes": false
   },
   {
-    "id": 94,
+    "id": 96,
     "category": "style",
     "app": "apps",
     "description": "Responsive layout: dashboard usable on laptop and projector resolutions",
@@ -1205,7 +1238,7 @@
     "passes": false
   },
   {
-    "id": 95,
+    "id": 97,
     "category": "style",
     "app": "apps",
     "description": "Loading, empty, and error states for every data panel",
@@ -1217,7 +1250,7 @@
     "passes": false
   },
   {
-    "id": 96,
+    "id": 98,
     "category": "style",
     "app": "apps",
     "description": "Accessible components: labels, contrast, keyboard navigation on interactive elements",
@@ -1228,7 +1261,7 @@
     "passes": false
   },
   {
-    "id": 97,
+    "id": 99,
     "category": "style",
     "app": "apps",
     "description": "Urgency badges visually distinct (routine / urgent / 24-hour start of care)",
@@ -1239,7 +1272,7 @@
     "passes": false
   },
   {
-    "id": 98,
+    "id": 100,
     "category": "functional",
     "app": "apis",
     "description": "NPPES NPI Registry live validation with offline fallback",
@@ -1252,7 +1285,7 @@
     "passes": false
   },
   {
-    "id": 99,
+    "id": 101,
     "category": "functional",
     "app": "apis",
     "description": "RxNorm medication normalization via RxNav API",
@@ -1264,7 +1297,7 @@
     "passes": false
   },
   {
-    "id": 100,
+    "id": 102,
     "category": "functional",
     "app": "apis",
     "description": "pgvector/pg_trgm fuzzy matching for insurance plans, medications, physician names",
@@ -1276,7 +1309,7 @@
     "passes": false
   },
   {
-    "id": 101,
+    "id": 103,
     "category": "functional",
     "app": "infra",
     "description": "Twilio number + ConversationRelay + ngrok wiring documented and scriptable",
@@ -1288,7 +1321,7 @@
     "passes": false
   },
   {
-    "id": 102,
+    "id": 104,
     "category": "functional",
     "app": "apis",
     "description": "E2E flow 1: discharge planner call from hello to done",
@@ -1309,7 +1342,7 @@
     "passes": false
   },
   {
-    "id": 103,
+    "id": 105,
     "category": "functional",
     "app": "apis",
     "description": "E2E flow 2: fax referral arrives and triggers follow-ups",
@@ -1329,7 +1362,7 @@
     "passes": false
   },
   {
-    "id": 104,
+    "id": 106,
     "category": "functional",
     "app": "apis",
     "description": "E2E flow 3: family member calls at midnight",
@@ -1349,7 +1382,7 @@
     "passes": false
   },
   {
-    "id": 105,
+    "id": 107,
     "category": "functional",
     "app": "apis",
     "description": "E2E flow 4: wrong zip / unaccepted insurance -> fast honest DECLINE",
@@ -1363,7 +1396,7 @@
     "passes": false
   },
   {
-    "id": 106,
+    "id": 108,
     "category": "functional",
     "app": "apis",
     "description": "E2E flow 5: outbound follow-up call collects a missing document commitment",
@@ -1377,7 +1410,7 @@
     "passes": false
   },
   {
-    "id": 107,
+    "id": 109,
     "category": "functional",
     "app": "apis",
     "description": "E2E flow 6: agent error mid-call degrades to spoken fallback + human handoff",
@@ -1390,7 +1423,7 @@
     "passes": false
   },
   {
-    "id": 108,
+    "id": 110,
     "category": "functional",
     "app": "apis",
     "description": "Concurrent calls and parallel fax processing without state bleed",
@@ -1402,7 +1435,7 @@
     "passes": false
   },
   {
-    "id": 109,
+    "id": 111,
     "category": "functional",
     "app": "apis",
     "description": "Garbled OCR fields are never auto-populated; verified by phone instead",
@@ -1414,7 +1447,7 @@
     "passes": false
   },
   {
-    "id": 110,
+    "id": 112,
     "category": "functional",
     "app": "apis",
     "description": "Demo compliance checklist verification script",
@@ -1426,7 +1459,7 @@
     "passes": false
   },
   {
-    "id": 111,
+    "id": 113,
     "category": "functional",
     "app": "apis",
     "description": "Backend code coverage >= 80% on core modules",
@@ -1438,7 +1471,7 @@
     "passes": false
   },
   {
-    "id": 112,
+    "id": 114,
     "category": "functional",
     "app": "apps",
     "description": "Frontend test coverage on dashboard components",
@@ -1450,7 +1483,7 @@
     "passes": false
   },
   {
-    "id": 113,
+    "id": 115,
     "category": "functional",
     "app": "infra",
     "description": "One-command local bring-up via init.sh",
