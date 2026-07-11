@@ -29,12 +29,12 @@ If the `.md` files and the actual code (or other `.md` files) appear inconsisten
 
 The organizers' brief is reproduced in full in [`PROJECT.md`](PROJECT.md#official-challenge-brief-strict--do-not-deviate). Treat these as hard constraints on every plan and implementation, not preferences:
 
-- **Twilio is mandatory for telephony.** No sponsor-prize eligibility without it — never propose or accept a non-Twilio telephony path (no other voice/SMS provider as the primary channel).
+- **ElevenLabs is the telephony/voice platform.** TEAM DECISION 2026-07-11 (see [`docs/ELEVENLABS_MIGRATION.md`](docs/ELEVENLABS_MIGRATION.md)): the project migrates from Twilio to ElevenLabs Agents (inbound + outbound voice; follow-ups via outbound calls instead of SMS), knowingly forgoing Twilio sponsor-prize eligibility. This supersedes the original "Twilio is mandatory" rule in the organizers' brief — do not re-introduce Twilio without an explicit new team decision. The brief text in `PROJECT.md` stays intact as the historical record; the migration doc governs.
 - The demo must be a **full end-to-end conversation** ("hello to done") for a real healthcare workflow — not a partial flow or a mocked segment.
 - **Reliability, guardrails, security, and scalability are prerequisites**, not stretch goals — do not deprioritize them under time pressure without flagging it to the user first.
 - **Everything demoed must be built during the sprint.** Pre-work is limited to data prep and scaffolding (see `PROJECT.md`'s Hackathon Build Plan) — do not present pre-built application logic as sprint output.
 - Before calling any feature "done," check it against the Compliance Checklist and the Judging Criteria table in `PROJECT.md`.
-- If a requested change would violate any of the above (e.g., "let's skip Twilio and mock the call," "let's cut guardrails to save time"), say so explicitly and ask for confirmation before proceeding — do not silently comply.
+- If a requested change would violate any of the above (e.g., "let's mock the calls," "let's cut guardrails to save time"), say so explicitly and ask for confirmation before proceeding — do not silently comply.
 
 ### Source of truth
 
@@ -115,8 +115,8 @@ If a shared component is unavoidable:
 
 Every API under `apis/` MUST live inside its own named subfolder — one folder per API — to keep it encapsulated. Never place API code, modules, or loose files directly at the root of `apis/`.
 
-- Use a descriptive, prefixed folder name per integration, e.g. `apis/api_twilio/`, `apis/api_eligibility/`, `apis/api_fax/`.
-- All of that API's code, config, and tests live inside its own folder (`apis/api_twilio/app/`, `apis/api_twilio/tests/`, etc.).
+- Use a descriptive, prefixed folder name per integration, e.g. `apis/api_elevenlabs/`, `apis/api_eligibility/`, `apis/api_fax/`.
+- All of that API's code, config, and tests live inside its own folder (`apis/api_elevenlabs/app/`, `apis/api_elevenlabs/tests/`, etc.).
 - No shared `apis/app/` or `apis/tests/` sitting loose at the `apis/` root — each API owns its own `app/` and `tests/` inside its named folder.
 
 ### Development workflow (every request)
