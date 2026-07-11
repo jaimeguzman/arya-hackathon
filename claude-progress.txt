@@ -20,6 +20,9 @@ Done this session:
    redis), apis/tests/test_health.py, requirements.txt, pytest.ini.
 
 BLOCKED / for the next agent:
+- .env.example was created on disk but could NOT be committed: the sandbox
+  read-deny on .env.* prevents git from stating the file. Commit it manually
+  (git add .env.example) from an unrestricted shell.
 - Could not install Python deps: sandbox blocks files.pythonhosted.org and the
   non-sandbox override was denied. Therefore tests were NOT run and feature #2
   stays "passes": false. First action next session: pip install -r
