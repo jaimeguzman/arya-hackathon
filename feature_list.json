@@ -391,7 +391,7 @@
       "Verify Docling parses text layers and regex/keyword rules extract patient name (after 'Patient:'/'Name:'), ICD codes (letter+digits), member IDs by payer format, NPI (10 digits). Expected result: the command/check completes successfully with no blocking errors.",
       "Unit tests feed known text snippets and assert extracted fields. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 31,

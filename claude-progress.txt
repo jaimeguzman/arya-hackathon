@@ -1,3 +1,47 @@
+=== Session 17 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (201 passed).
+   Note: commit 0ef47a8 (features 40, 76 - ElevenLabs Custom LLM transport)
+   landed without a progress-notes session entry; feature_list already showed
+   28 passing at session start.
+2. Feature #30 (Layer 3 Path B - Docling + regex rule-based extraction)
+   IMPLEMENTED, VERIFIED, marked passing:
+   - NEW app/pipeline/extraction_rules.py: parse_text_layer(path) uses
+     Docling's parse backend directly (DoclingParseDocumentBackend - no ML
+     pipeline, no model downloads, ~0.3s for the 3-page sample) to read
+     digital PDF text layers per page; regex rules extract patient name
+     (after 'Patient:'/'Name:' labels), ICD codes (letter+digits+dotted
+     extension), NPI (labeled, exactly 10 digits), member ID (labeled line)
+     matched against payer-specific formats (Medicare MBI, Humana H+9d,
+     Aetna A+9 alnum, UHC 9d, State Medicaid 8d+2L). IDs matching no format
+     are kept - flagging is Layer 5's job. Fields carry
+     extraction_path='rules' (ready for Layer 4 convergence, feature #32).
+   - NEW tests/test_pipeline_extraction_rules.py: 14 tests - snippet-fed
+     rule tests per field, payer-format parametrized cases, Docling parse
+     of sample REF-1001 (3 pages, expected content per page), Docling+rules
+     end-to-end asserting Eleanor Marsh / Z96.641+I10 / NPI / Medicare MBI.
+   - requirements.txt: + docling>=2.70 (installed in apis/.venv).
+   - Full suite: 215 passed.
+
+Status: 29/115 features passing.
+
+Environment notes:
+- The sandbox denies reading site-packages cacert.pem, which docling's
+  transformers import chain touches - run pytest for this suite outside
+  the sandbox (or any run importing app.pipeline.extraction_rules).
+  Docling is imported lazily so the rest of the app is unaffected.
+
+Recommended next work:
+- Feature #31 (Layer 3 Path C - Gemini vision, mockable) and #32 (Layer 4
+  convergence: rules/vision outputs normalize to one schema; extraction_path
+  per field already emitted by the rules path). All inside app/pipeline/.
+- Foreign-dirty files unchanged: still avoid routes/twilio.py,
+  eligibility_agent.py, WORKFLOW.md, and other files listed in session 12.
+- infra features #1/#4/#5 still blocked on Docker Desktop.
+
 === Session 15 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
