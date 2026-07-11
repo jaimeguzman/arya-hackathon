@@ -1,3 +1,41 @@
+=== Session 25 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Found substantial uncommitted work already in the tree from an
+   interrupted prior session (eligibility agent consolidation, new
+   family_intake.py and knowledge_graph.py agent modules,
+   eligibility/live_sources.py Postgres-backed reference data, infra/neo4j
+   + infra/postgres seed scripts, docs/MERGE_DAY_RECONCILIATION.md).
+2. Verified full apis/api_intake suite before committing: 282 passed
+   outside sandbox (the 2 docling failures seen inside the sandbox are the
+   known *.pem-stat sandbox artifact, not real failures).
+3. Committed the checkpoint (d1897b1) since tests were fully green — no
+   feature_list.json "passes" flips this session; that consolidation work
+   was not tied to a single feature step in the recommended-next-work
+   notes, so left for next session to map against feature_list.json and
+   mark accordingly (likely touches #5, #21, #46, #80 once Neo4j/Docker
+   verification is possible).
+
+Known gaps / blocked:
+- Docker daemon still NOT running — features #1/#4/#5, #21/#22 (Neo4j),
+  #25/#38 (Redis) remain blocked for e2e verification.
+- knowledge_graph.py and live_sources.py fall back to JSON when
+  Neo4j/Postgres are unavailable; needs e2e verification against real
+  Docker services before marking #5/#21 passing.
+- family_intake.py added but not yet wired into feature_list.json step
+  verification (#46 family mode) — needs browser/voice-flow check.
+
+Status: 36/115 features passing (unchanged this session — checkpoint
+commit only, no new feature verified end-to-end).
+
+Recommended next work:
+- Bring up Docker (infra-up skill) and verify #1/#4/#5/#21/#22/#25/#38
+  against real Postgres/Neo4j/Redis.
+- Verify family_intake.py against feature #46 steps once dashboard/voice
+  flow can be driven.
+
 === Session 24 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
