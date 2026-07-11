@@ -1,3 +1,33 @@
+=== Session 19 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (222 passed).
+   Note: the 2 "failures" seen inside the sandbox (PermissionError on
+   certifi cacert.pem during Docling import) are sandbox artifacts —
+   *.pem reads are denied; run pytest outside the sandbox.
+2. Feature #32 (Layer 4 convergence) IMPLEMENTED, VERIFIED, marked passing:
+   - NEW app/pipeline/convergence.py: CONVERGED_FIELD_NAMES canonical
+     schema; normalize_page_fields() maps RuleExtractedFields /
+     VisionExtractedFields to {field: {value, extraction_path}} raw JSON;
+     converge_document() merges per-page results from both paths, sorted
+     by page number, and raises if a page was routed to both paths.
+   - NEW tests/test_pipeline_convergence.py: 8 tests — schema equality of
+     both paths' outputs, per-field extraction_path + value fidelity,
+     JSON serializability, merge/sort, dual-routing rejection, null
+     defaults.
+   - Full suite: 230 passed.
+
+Status: 31/115 features passing.
+
+Recommended next work:
+- Feature #33 (Layer 5 Validation Agent): consume converge_document()
+  output; reference tables live in data/reference/.
+- Then #34 (Correction Agent), #35 (Cross-Reference Agent).
+- Foreign-dirty files unchanged (session 12 list); infra features #1/#4/#5
+  still blocked on Docker Desktop.
+
 === Session 18 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize

@@ -416,7 +416,7 @@
       "Verify rules-path and vision-path outputs normalize to the same schema including extraction_path (rules/vision) per field. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit test asserts schema equality of both paths' outputs. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 33,
