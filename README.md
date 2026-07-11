@@ -2,18 +2,6 @@
 
 **Intelligent patient intake agent for home health agencies**
 
-Built for **AI Healthcare Hack NYC** (localhost:nyc × [Arya Health](https://arya.health)) with **Twilio AI Startup Searchlight**. One-day sprint: ship a production-minded voice + document intake agent with guardrails, live demo, and judging.
-
-| | |
-|---|---|
-| **Product brief** | [`PROJECT.md`](./PROJECT.md) |
-| **Safety (non-negotiable)** | [`must-have.md`](./must-have.md) |
-| **Architecture detail** | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) |
-| **Workflow walkthrough** | [`WORKFLOW.md`](./WORKFLOW.md) |
-| **Repo** | https://github.com/jaimeguzman/arya-hackathon |
-
----
-
 ## The problem
 
 Home health agencies lose referrals because intake is slow: fax packets sit in queues, phones go unanswered after hours, and eligibility checks take coordinators ~70 minutes. Discharge planners call 3–5 agencies at once — **whoever answers first wins the patient**.
