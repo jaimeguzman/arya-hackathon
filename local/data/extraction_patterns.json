@@ -1,0 +1,42 @@
+{
+  "patient_name": {
+    "keywords": ["Patient Name:", "Patient:", "Name:"],
+    "pattern": "(?i)(?:Patient\\s*Name|Patient|Name)\\s*[:\\-]\\s*([A-Za-z][A-Za-z .,'\\-]{1,60})"
+  },
+  "date_of_birth": {
+    "keywords": ["DOB:", "Date of Birth:", "Birth Date:"],
+    "pattern": "(?i)(?:DOB|Date of Birth|Birth Date)\\s*[:\\-]\\s*(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})"
+  },
+  "icd_codes": {
+    "keywords": ["ICD", "Diagnosis"],
+    "pattern": "\\b([A-TV-Z][0-9][0-9A-Z](?:\\.[0-9A-Z]{1,4})?)\\b"
+  },
+  "physician_npi": {
+    "keywords": ["NPI"],
+    "pattern": "(?i)NPI\\s*[:\\#]?\\s*(\\d{10})"
+  },
+  "member_id": {
+    "keywords": ["Member ID:", "ID#:", "Subscriber ID:"],
+    "pattern": "(?i)(?:Member\\s*ID|ID\\#|Subscriber\\s*ID)\\s*[:\\-]\\s*([A-Z0-9\\-]{4,20})"
+  },
+  "payer_name": {
+    "keywords": ["Payer:", "Insurance:", "Plan:"],
+    "pattern": "(?i)(?:Payer|Insurance|Insurer)\\s*[:\\-]\\s*([A-Za-z][A-Za-z0-9 .&\\-]{1,40})"
+  },
+  "plan_name": {
+    "keywords": ["Plan Type:", "Plan Name:", "Plan:"],
+    "pattern": "(?i)(?:Plan\\s*(?:Type|Name)?|Coverage)\\s*[:\\-]\\s*([A-Za-z0-9][A-Za-z0-9 .\\-]{1,40})"
+  },
+  "zip_code": {
+    "keywords": ["Zip:", "ZIP:", "Postal:"],
+    "pattern": "(?i)(?:Zip|ZIP|Postal)\\s*[:\\-]?\\s*(\\d{5})(?:-\\d{4})?"
+  },
+  "discharge_date": {
+    "keywords": ["Discharge Date:", "Discharged:"],
+    "pattern": "(?i)(?:Discharge\\s*Date|Discharged)\\s*[:\\-]\\s*(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}|\\d{4}-\\d{2}-\\d{2})"
+  },
+  "physician_name": {
+    "keywords": ["Physician:", "Attending:", "Ordering Physician:"],
+    "pattern": "(?i)(?:Ordering\\s*Physician|Attending|Physician)\\s*[:\\-]\\s*([A-Za-z][A-Za-z .,'\\-]{1,60})"
+  }
+}

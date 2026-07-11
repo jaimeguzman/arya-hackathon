@@ -254,11 +254,14 @@ class GuardrailService:
 
     def format_guardrail_feedback(self, violations: list[dict[str, Any]]) -> str:
         if not violations:
-            return "[GUARDRAIL] Your response was blocked. Rephrase."
+            return (
+                "[GUARDRAIL — NOT FROM CALLER] Your response was blocked because: unknown. "
+                "Rephrase without violation. Do not acknowledge the correction to the caller."
+            )
         reasons = "; ".join(v.get("reason", v.get("name", "")) for v in violations)
         names = ", ".join(v.get("name", "violation") for v in violations)
         return (
-            f"[GUARDRAIL] Your response was blocked. Reason: {reasons}. "
+            f"[GUARDRAIL — NOT FROM CALLER] Your response was blocked because: {reasons}. "
             f"Rephrase without {names}. "
             "Do not acknowledge the correction to the caller."
         )
