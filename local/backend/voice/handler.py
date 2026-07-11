@@ -34,13 +34,34 @@ _PROVIDER_WORDS = {"discharge", "planner", "physician", "referral", "hospital", 
 def detect_mode(first_utterance: str) -> str:
     """Deterministic keyword classification — a binary-ish choice, no LLM call needed."""
     normalized = first_utterance.lower()
-    if any(word in normalized for word in _PROVIDER_WORDS):
+    # word-boundary match, not substring — "hospital" must not match "hospitality"
+    if any(re.search(rf"\b{re.escape(word)}\b", normalized) for word in _PROVIDER_WORDS):
         return "provider"
     # ponytail: default to the gentler mode when ambiguous — never assume
     # clinical fluency the caller might not have. Upgrade: LLM-based
     # classification with caller_identification confidence if this proves
     # too coarse during real testing.
     return "family"
+
+
+def _build_contents(session: CallSession, current_tokenized_text: str) -> list[dict]:
+    """Full tokenized conversation so far, in Gemini's role/parts shape.
+
+    Built from session.transcript, which holds every prior turn (the
+    current turn hasn't been appended yet when this runs).
+    """
+    contents = []
+    for turn in session.transcript:
+        contents.append({
+            "role": "user",
+            "parts": [{"text": guardrails.tokenize(turn["caller"], session.known_fields)}],
+        })
+        contents.append({
+            "role": "model",
+            "parts": [{"text": guardrails.tokenize(turn["agent"], session.known_fields)}],
+        })
+    contents.append({"role": "user", "parts": [{"text": current_tokenized_text}]})
+    return contents
 
 
 def handle_turn(session: CallSession, caller_text: str) -> str:
