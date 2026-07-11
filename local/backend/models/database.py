@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
 from redis.asyncio import Redis
@@ -52,6 +52,19 @@ def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
 def get_session() -> AsyncSession:
     """Create a new AsyncSession (caller must close / use as context manager)."""
     return get_sessionmaker()()
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """FastAPI dependency: yield a session, commit on success, rollback on error."""
+    session = get_sessionmaker()()
+    try:
+        yield session
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
 
 
 async def close_postgres() -> None:

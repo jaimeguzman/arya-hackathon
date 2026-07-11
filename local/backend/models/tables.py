@@ -175,6 +175,12 @@ class IntakeRecord(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
+    documents: Mapped[list["Document"]] = relationship(back_populates="intake_record")
+    call_records: Mapped[list["CallRecord"]] = relationship(back_populates="intake_record")
+    follow_up_actions: Mapped[list["FollowUpAction"]] = relationship(
+        back_populates="intake_record"
+    )
+
 
 class Caregiver(Base):
     __tablename__ = "caregivers"
@@ -350,6 +356,11 @@ class Document(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
+    intake_record: Mapped[Optional["IntakeRecord"]] = relationship(back_populates="documents")
+    pages: Mapped[list["DocumentPage"]] = relationship(
+        back_populates="document", cascade="all, delete-orphan"
+    )
+
 
 class DocumentPage(Base):
     __tablename__ = "document_pages"
@@ -378,6 +389,8 @@ class DocumentPage(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+    document: Mapped["Document"] = relationship(back_populates="pages")
 
 
 class CallRecord(Base):
@@ -413,6 +426,8 @@ class CallRecord(Base):
     )
     ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
+    intake_record: Mapped[Optional["IntakeRecord"]] = relationship(back_populates="call_records")
+
 
 class FollowUpAction(Base):
     __tablename__ = "follow_up_actions"
@@ -443,3 +458,5 @@ class FollowUpAction(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+
+    intake_record: Mapped["IntakeRecord"] = relationship(back_populates="follow_up_actions")

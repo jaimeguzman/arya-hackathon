@@ -1,0 +1,39 @@
+{
+  "required_all": [
+    "patient_name",
+    "date_of_birth",
+    "diagnosis_or_icd",
+    "payer_name",
+    "zip_code",
+    "referring_provider"
+  ],
+  "required_medicare": [
+    "physician_orders",
+    "f2f_encounter",
+    "homebound_status",
+    "icd_codes"
+  ],
+  "required_prior_auth": [
+    "prior_authorization"
+  ],
+  "optional": [
+    "patient_phone",
+    "emergency_contact",
+    "medications",
+    "allergies",
+    "functional_limitations",
+    "discharge_date",
+    "preferred_language"
+  ],
+  "field_aliases": {
+    "diagnosis_or_icd": ["icd_codes", "primary_diagnosis", "diagnosis"],
+    "referring_provider": ["physician_name", "referring_facility", "facility_name"],
+    "f2f_encounter": ["f2f_note", "face_to_face", "f2f_encounter"],
+    "physician_orders": ["physician_orders", "orders"],
+    "homebound_status": ["homebound", "homebound_status"]
+  },
+  "gap_actions": {
+    "f2f_encounter": "Call referring provider to request F2F documentation.",
+    "default": "Collect via phone call or request from referring provider."
+  }
+}

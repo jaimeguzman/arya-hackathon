@@ -294,7 +294,9 @@ class TestFeedbackAndPrompts(unittest.TestCase):
     def test_format_guardrail_feedback(self) -> None:
         blocked = self.gs.check_outgoing_message("I guarantee help", "provider")
         msg = self.gs.format_guardrail_feedback(blocked["violations"])
-        self.assertIn("[GUARDRAIL]", msg)
+        self.assertIn("[GUARDRAIL", msg)
+        self.assertIn("NOT FROM CALLER", msg)
+        self.assertIn("Do not acknowledge", msg)
 
     def test_load_prompt(self) -> None:
         text = load_prompt("provider_inbound")
