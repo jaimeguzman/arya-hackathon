@@ -76,6 +76,8 @@ Legend: `[x]` = implemented AND verified (tests passing) in the canonical tree (
 
 ## 7. Dashboard
 
+> **Team decision 2026-07-11 (option A):** `local/frontend` (the teammate's React dashboard) is the demo dashboard, served on :5174 against her backend on :8001. `apps/dashboard` is retired — its API contract (`local/backend/api/app.py`, `/referrals` on :8010) was removed by her final-workflow refactor and no backend serves it; decide at merge day whether to adapt or delete it. Known one-line fix pending on her side: `local/frontend/src/api/client.js:64` hardcodes `http://localhost:8000` for the health check in dev, so the "API" pill shows offline when her backend runs on :8001.
+
 - [ ] Referral list with live status per referral
 - [ ] Per-field confidence scores displayed
 - [ ] Full call transcript view
