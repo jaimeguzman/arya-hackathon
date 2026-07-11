@@ -1,0 +1,177 @@
+{
+  "service_types": [
+    {"name": "skilled_nursing", "displayName": "Skilled Nursing", "description": "RN/LPN clinical nursing visits"},
+    {"name": "physical_therapy", "displayName": "Physical Therapy", "description": "Mobility, strength, and gait training"},
+    {"name": "occupational_therapy", "displayName": "Occupational Therapy", "description": "ADL and adaptive equipment training"},
+    {"name": "speech_therapy", "displayName": "Speech Therapy", "description": "Speech, language, and swallowing therapy"},
+    {"name": "home_health_aide", "displayName": "Home Health Aide", "description": "Personal care assistance under supervision"},
+    {"name": "medical_social_work", "displayName": "Medical Social Work", "description": "Psychosocial assessment and resource coordination"}
+  ],
+  "certification_types": [
+    {"name": "RN", "displayName": "Registered Nurse"},
+    {"name": "LPN", "displayName": "Licensed Practical Nurse"},
+    {"name": "CNA", "displayName": "Certified Nursing Assistant"},
+    {"name": "PT", "displayName": "Physical Therapist"},
+    {"name": "OT", "displayName": "Occupational Therapist"},
+    {"name": "ST", "displayName": "Speech Therapist"},
+    {"name": "HHA", "displayName": "Home Health Aide"},
+    {"name": "wound_care", "displayName": "Wound Care Certification"},
+    {"name": "iv_therapy", "displayName": "IV Therapy Certification"},
+    {"name": "cardiac", "displayName": "Cardiac Care Certification"},
+    {"name": "orthopedic", "displayName": "Orthopedic Certification"},
+    {"name": "diabetes_education", "displayName": "Diabetes Education"},
+    {"name": "pediatric", "displayName": "Pediatric Certification"},
+    {"name": "hospice_palliative", "displayName": "Hospice/Palliative Certification"},
+    {"name": "oncology", "displayName": "Oncology Certification"}
+  ],
+  "mappings": [
+    {
+      "diagnosis_codes": ["Z96.641", "Z96.642", "M16.11"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary", "specialization": "orthopedic"},
+        {"service": "physical_therapy", "priority": "primary", "specialization": "orthopedic"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true},
+        "physical_therapy": {"certs": ["PT"], "either": false}
+      }
+    },
+    {
+      "diagnosis_codes": ["Z96.651", "Z96.652", "M17.11"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary", "specialization": "orthopedic"},
+        {"service": "physical_therapy", "priority": "primary"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true},
+        "physical_therapy": {"certs": ["PT"], "either": false}
+      }
+    },
+    {
+      "diagnosis_codes": ["S72.001A", "S72.002A"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary", "specialization": "orthopedic"},
+        {"service": "physical_therapy", "priority": "primary"},
+        {"service": "occupational_therapy", "priority": "secondary"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true},
+        "physical_therapy": {"certs": ["PT"], "either": false},
+        "occupational_therapy": {"certs": ["OT"], "either": false}
+      }
+    },
+    {
+      "diagnosis_codes": ["I50.9", "I50.22", "I25.10"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary", "specialization": "cardiac"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true}
+      }
+    },
+    {
+      "diagnosis_codes": ["I10"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true}
+      }
+    },
+    {
+      "diagnosis_codes": ["I63.9", "I69.351"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary"},
+        {"service": "physical_therapy", "priority": "primary"},
+        {"service": "occupational_therapy", "priority": "primary"},
+        {"service": "speech_therapy", "priority": "secondary"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true},
+        "physical_therapy": {"certs": ["PT"], "either": false},
+        "occupational_therapy": {"certs": ["OT"], "either": false},
+        "speech_therapy": {"certs": ["ST"], "either": false}
+      }
+    },
+    {
+      "diagnosis_codes": ["G30.9", "G20"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary"},
+        {"service": "home_health_aide", "priority": "secondary"},
+        {"service": "medical_social_work", "priority": "secondary"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true},
+        "home_health_aide": {"certs": ["HHA", "CNA"], "either": true},
+        "medical_social_work": {"certs": ["RN"], "either": false}
+      }
+    },
+    {
+      "diagnosis_codes": ["E11.9", "E11.65"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary", "specialization": "diabetes_education"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true}
+      }
+    },
+    {
+      "diagnosis_codes": ["J44.9", "J44.1"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true}
+      }
+    },
+    {
+      "diagnosis_codes": ["L89.154", "L97.529"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary", "specialization": "wound_care"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true}
+      }
+    },
+    {
+      "diagnosis_codes": ["N18.6", "N18.4"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true}
+      }
+    },
+    {
+      "diagnosis_codes": ["Z48.812", "Z48.89", "R26.89"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary"},
+        {"service": "physical_therapy", "priority": "secondary"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN", "LPN"], "either": true},
+        "physical_therapy": {"certs": ["PT"], "either": false}
+      }
+    },
+    {
+      "diagnosis_codes": ["Z51.5"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary", "specialization": "hospice_palliative"},
+        {"service": "medical_social_work", "priority": "secondary"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN"], "either": false},
+        "medical_social_work": {"certs": ["RN"], "either": false}
+      }
+    },
+    {
+      "diagnosis_codes": ["C34.90", "C50.919"],
+      "required_services": [
+        {"service": "skilled_nursing", "priority": "primary", "specialization": "oncology"}
+      ],
+      "service_certification_map": {
+        "skilled_nursing": {"certs": ["RN"], "either": false}
+      }
+    }
+  ]
+}
