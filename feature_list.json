@@ -238,7 +238,7 @@
       "Verify a typed EligibilityResult carries exactly one status of ACCEPT, DECLINE, NEEDS_MORE_INFO plus structured reasons. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit test constructs each status and serializes to JSON. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 19,
