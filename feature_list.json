@@ -477,7 +477,7 @@
       "Verify each missing item becomes a specific gap_list row with a follow-up task for the Voice Agent. Expected result: the command/check completes successfully with no blocking errors.",
       "Test with an incomplete packet asserts the expected gaps. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 37,

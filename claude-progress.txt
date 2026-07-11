@@ -1,3 +1,37 @@
+=== Session 23 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: 263 passed in sandbox before new work (the 2
+   failures remain the known *.pem-read sandbox artifact).
+2. Feature #36 (Layer 6 Completeness Check and Gap Identification)
+   IMPLEMENTED, VERIFIED, marked passing:
+   - NEW app/pipeline/completeness.py: check_completeness(PacketSummary)
+     checks the 7-item requirements checklist (demographics, signed
+     physician orders, F2F documentation, insurance info, diagnosis+ICD,
+     homebound status, medication list). Each missing item becomes a
+     CompletenessGap in gap_list row shape (missing item, follow-up
+     action for the Voice Agent, status=open, attempts=0). Distinguishes
+     orders-missing vs orders-unsigned, payer vs member ID, diagnosis
+     text vs ICD codes. Deterministic code, no LLM.
+   - NEW tests/test_pipeline_completeness.py: 8 tests (checklist
+     coverage, complete packet, per-field demographics gaps, unsigned
+     vs missing orders, ICD-only gap, incomplete-packet assertion,
+     empty packet flags all 7). Full suite: 271 passed.
+
+Status: 35/115 features passing.
+
+Recommended next work:
+- Feature #37 (Layer 7 confidence scoring/routing): compose validation
+  + correction + cross-reference + completeness outputs into
+  HIGH/MEDIUM/LOW routing. PacketSummary + CompletenessReport are the
+  Layer 6 contract.
+- Docker still down: features #1/#4/#5, #21/#22 (Neo4j), #25 (Redis)
+  remain blocked for e2e verification.
+- Doc-sync gaps from sessions 20-22 still pending (edit hooks block
+  data/README.md and WORKFLOW.md).
+
 === Session 22 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
