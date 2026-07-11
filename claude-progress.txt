@@ -1,3 +1,40 @@
+=== Session 10 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (138 passed;
+   grew to 146 mid-session because another agent is actively adding tests —
+   test_sample_referral_scenarios.py etc. All left untouched/uncommitted).
+2. Feature #44 (mid-call mode switch) IMPLEMENTED, VERIFIED, marked passing:
+   - mode_router.py: ModeTransition model (old_mode/new_mode/turn);
+     CallModeStore.log_transition/get_transitions (Redis list
+     call:{sid}:mode_transitions) for dashboard visibility.
+   - routes/twilio.py: _maybe_switch_mode() re-runs classification on later
+     turns inside run_call_turn's safety boundary; confident differing
+     inbound mode re-assigns call.mode + swaps prompt; session fields
+     (zip/plan/service) untouched by the switch; transition recorded on the
+     session, in the app log (logger.info), and in the mode store.
+     CallSession gains turn_count and mode_transitions.
+   - tests/test_mode_router.py: +5 tests (switch+prompt swap, field
+     preservation, transition logging, low-confidence/same-mode no-op, full
+     WS family->provider flow). Suite 146 passed; safety gate 30 passed.
+
+Status: 21/115 features passing.
+
+Notes:
+- Another agent is actively adding foreign work in the same tree
+  (eligibility_agent.py, knowledge_graph.py, infra/neo4j, docs). Staged
+  explicit paths only; nothing foreign committed.
+- `make safety` broken: Makefile PYTHON points outside apis/.venv — ran
+  tests/test_safety_layer.py directly instead (30 passed). Fix candidate for
+  a future session (verify it is not the other agent's edit first).
+- git stash is unusable in the sandbox (.env.example lstat denied) — avoid.
+
+Recommended next work:
+- Feature #45 (provider mode structured intake + mid-call eligibility),
+  then #46 (family mode) and #47 (patient mode, needs dedicated prompt).
+
 === Session 9 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize

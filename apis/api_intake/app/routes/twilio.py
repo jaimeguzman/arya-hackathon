@@ -15,6 +15,7 @@ replacement of `_provider_turn` with a function that calls
 `app.safety.llm_gateway.call_llm` — the safety gates stay identical.
 """
 
+import logging
 import re
 from xml.sax.saxutils import quoteattr
 
@@ -29,6 +30,7 @@ from app.agents.mode_router import (
     INBOUND_MODES,
     CallerMode,
     CallModeStore,
+    ModeTransition,
     classify_utterance,
     load_mode_prompt,
 )
@@ -36,6 +38,8 @@ from app.config import get_settings
 from app.safety.consent import CONSENT_DISCLOSURE, CallRecord, handle_consent_answer
 from app.safety.handoff import run_call_turn, trigger_handoff
 from app.safety.safe_response import SafeResponse, speak
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -76,6 +80,8 @@ class CallSession:
         self.mode: CallerMode | None = None
         self.mode_prompt: str | None = None
         self.mode_clarification_asked = False
+        self.turn_count = 0
+        self.mode_transitions: list[ModeTransition] = []
 
 
 def get_mode_store() -> CallModeStore | None:
@@ -145,6 +151,46 @@ def _assign_mode(
     return None
 
 
+def _maybe_switch_mode(session: CallSession, utterance: str) -> None:
+    """Mid-call mode switch when the caller type becomes clearer (feature 44).
+
+    Re-runs classification on later turns. A confident classification that
+    differs from the current mode re-assigns call.mode and swaps the system
+    prompt. Collected structured fields live on the session and are untouched
+    by the switch. Every transition is recorded with old_mode, new_mode, and
+    the triggering turn — on the session, in the app log, and (when Redis is
+    configured) in the mode store for dashboard visibility. This runs inside
+    run_call_turn's safety boundary, so a switch never bypasses the 4 gates.
+    """
+    classification = classify_utterance(utterance)
+    if (
+        classification.mode not in INBOUND_MODES
+        or classification.confidence < MODE_CONFIDENCE_THRESHOLD
+        or classification.mode is session.mode
+    ):
+        return
+    session.record = session.record.model_copy(
+        update={"mode_confidence": classification.confidence}
+    )
+    transition = ModeTransition(
+        old_mode=session.mode,
+        new_mode=classification.mode,
+        turn=session.turn_count,
+    )
+    session.mode_transitions.append(transition)
+    logger.info(
+        "mode switch call_sid=%s old_mode=%s new_mode=%s turn=%d",
+        session.record.call_sid,
+        transition.old_mode.value,
+        transition.new_mode.value,
+        transition.turn,
+    )
+    _set_mode(session, classification.mode)
+    store = get_mode_store()
+    if store is not None:
+        store.log_transition(session.record.call_sid, transition)
+
+
 def _extract_fields(session: CallSession, utterance: str) -> bool:
     """Extract known fields from the utterance. Returns True on any progress."""
     progressed = False
@@ -211,11 +257,14 @@ def _post_consent_turn(session: CallSession, utterance: str) -> str:
     detection happens on early turns; an ambiguous, zero-progress opening
     yields the one neutral clarifying question instead of the intake reply.
     """
+    session.turn_count += 1
     progressed = _extract_fields(session, utterance)
     if session.mode is None:
         clarifying_question = _assign_mode(session, utterance, made_progress=progressed)
         if clarifying_question is not None:
             return clarifying_question
+    else:
+        _maybe_switch_mode(session, utterance)
     return _provider_turn(session, progressed)
 
 

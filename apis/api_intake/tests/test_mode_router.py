@@ -27,12 +27,20 @@ class FakeRedisClient:
 
     def __init__(self) -> None:
         self.hashes: dict[str, dict[str, bytes]] = {}
+        self.lists: dict[str, list[bytes]] = {}
 
     def hset(self, key: str, field: str, value: str) -> None:
         self.hashes.setdefault(key, {})[field] = value.encode()
 
     def hget(self, key: str, field: str) -> bytes | None:
         return self.hashes.get(key, {}).get(field)
+
+    def rpush(self, key: str, value: str) -> None:
+        self.lists.setdefault(key, []).append(value.encode())
+
+    def lrange(self, key: str, start: int, end: int) -> list[bytes]:
+        items = self.lists.get(key, [])
+        return items[start:] if end == -1 else items[start : end + 1]
 
 
 class TestClassification:
@@ -242,3 +250,84 @@ class TestAmbiguousCallFlow:
             reply = self._say(ws, AMBIGUOUS_UTTERANCE)
             assert reply["token"]  # spoken fallback, not silence
             assert ws.receive_json() == {"type": "end"}
+
+
+PROVIDER_UTTERANCE = "Actually, I'm the discharge planner and I have a referral."
+
+
+class TestMidCallModeSwitch:
+    """Feature 44: mid-call mode switch when the caller type becomes clearer."""
+
+    @pytest.fixture()
+    def fake_store(self, monkeypatch):
+        store = CallModeStore(FakeRedisClient())
+        monkeypatch.setattr(twilio_routes, "get_mode_store", lambda: store)
+        return store
+
+    def _family_session(self, turn: int = 1) -> twilio_routes.CallSession:
+        session = twilio_routes.CallSession("CA-switch")
+        session.record = session.record.model_copy(update={"consent_given": True})
+        session.turn_count = turn
+        twilio_routes._set_mode(session, CallerMode.FAMILY)
+        return session
+
+    def test_confident_later_turn_switches_mode_and_prompt(self, fake_store):
+        session = self._family_session(turn=3)
+        family_prompt = session.mode_prompt
+        twilio_routes._maybe_switch_mode(session, PROVIDER_UTTERANCE)
+        assert session.mode == CallerMode.PROVIDER
+        assert session.mode_prompt == load_mode_prompt(CallerMode.PROVIDER)
+        assert session.mode_prompt != family_prompt
+        assert fake_store.get_mode("CA-switch") == CallerMode.PROVIDER
+
+    def test_switch_preserves_collected_fields(self, fake_store):
+        session = self._family_session()
+        session.patient_zip = "60601"
+        session.insurance_plan = "Medicare"
+        session.service_type = "skilled_nursing"
+        twilio_routes._maybe_switch_mode(session, PROVIDER_UTTERANCE)
+        assert session.mode == CallerMode.PROVIDER
+        assert session.patient_zip == "60601"
+        assert session.insurance_plan == "Medicare"
+        assert session.service_type == "skilled_nursing"
+
+    def test_transition_logged_with_old_new_and_turn(self, fake_store):
+        session = self._family_session(turn=2)
+        twilio_routes._maybe_switch_mode(session, PROVIDER_UTTERANCE)
+        assert len(session.mode_transitions) == 1
+        transition = session.mode_transitions[0]
+        assert transition.old_mode == CallerMode.FAMILY
+        assert transition.new_mode == CallerMode.PROVIDER
+        assert transition.turn == 2
+        assert fake_store.get_transitions("CA-switch") == [transition]
+
+    def test_low_confidence_or_same_mode_does_not_switch(self, fake_store):
+        session = self._family_session()
+        twilio_routes._maybe_switch_mode(session, LOW_CONFIDENCE_UTTERANCE)
+        assert session.mode == CallerMode.FAMILY
+        assert session.mode_transitions == []
+        twilio_routes._maybe_switch_mode(session, "It's for my mother.")
+        assert session.mode == CallerMode.FAMILY
+        assert session.mode_transitions == []
+        assert fake_store.get_transitions("CA-switch") == []
+
+    def test_ws_family_to_provider_switch_keeps_fields_and_gates(self, fake_store):
+        """Full flow: family opening, then a provider reveal — fields kept,
+        transition persisted, and the reply still comes through the safety
+        boundary (spoken text, no silent drop)."""
+        call_sid = "CA-ws-switch"
+        flow = TestAmbiguousCallFlow()
+        with client.websocket_connect("/twilio/conversation-relay") as ws:
+            flow._consented(ws, call_sid)
+            flow._say(ws, "I'm his daughter, my father needs help. Zip is 60601.")
+            assert fake_store.get_mode(call_sid) == CallerMode.FAMILY
+            reply = flow._say(
+                ws, "Actually I'm the discharge planner and I have a referral."
+            )
+            assert reply["token"]  # gated spoken reply, never silence
+            assert fake_store.get_mode(call_sid) == CallerMode.PROVIDER
+            transitions = fake_store.get_transitions(call_sid)
+            assert len(transitions) == 1
+            assert transitions[0].old_mode == CallerMode.FAMILY
+            assert transitions[0].new_mode == CallerMode.PROVIDER
+            assert transitions[0].turn == 2

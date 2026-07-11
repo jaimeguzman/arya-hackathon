@@ -9,6 +9,7 @@ Detection is only invoked after consent_given is True (enforced by the
 @requires_consent decorator and by the call-flow wiring in routes/twilio.py).
 """
 
+import json
 import re
 from enum import Enum
 from pathlib import Path
@@ -111,6 +112,14 @@ _MODE_PHRASES: dict[CallerMode, tuple[str, ...]] = {
 }
 
 
+class ModeTransition(BaseModel):
+    """One mid-call mode switch, logged for dashboard visibility."""
+
+    old_mode: CallerMode
+    new_mode: CallerMode
+    turn: int
+
+
 class ModeClassification(BaseModel):
     """Result of early-turn caller-type detection."""
 
@@ -179,3 +188,15 @@ class CallModeStore:
             return None
         value = raw.decode() if isinstance(raw, bytes) else raw
         return CallerMode(value)
+
+    def log_transition(self, call_sid: str, transition: ModeTransition) -> None:
+        self._client.rpush(
+            f"call:{call_sid}:mode_transitions", transition.model_dump_json()
+        )
+
+    def get_transitions(self, call_sid: str) -> list[ModeTransition]:
+        raw_items = self._client.lrange(f"call:{call_sid}:mode_transitions", 0, -1)
+        return [
+            ModeTransition(**json.loads(item.decode() if isinstance(item, bytes) else item))
+            for item in raw_items
+        ]
