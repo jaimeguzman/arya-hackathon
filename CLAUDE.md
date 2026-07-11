@@ -7,6 +7,17 @@ Este archivo contiene instrucciones específicas del proyecto para Claude Code.
 
 This is the standing operating protocol for this repo. Apply it any time a team member asks for a feature, change, task breakdown, or plan — not just when explicitly invoked.
 
+### Official challenge rules — strict, non-negotiable
+
+The organizers' brief is reproduced in full in [`PROJECT.md`](PROJECT.md#official-challenge-brief-strict--do-not-deviate). Treat these as hard constraints on every plan and implementation, not preferences:
+
+- **Twilio is mandatory for telephony.** No sponsor-prize eligibility without it — never propose or accept a non-Twilio telephony path (no other voice/SMS provider as the primary channel).
+- The demo must be a **full end-to-end conversation** ("hello to done") for a real healthcare workflow — not a partial flow or a mocked segment.
+- **Reliability, guardrails, security, and scalability are prerequisites**, not stretch goals — do not deprioritize them under time pressure without flagging it to the user first.
+- **Everything demoed must be built during the sprint.** Pre-work is limited to data prep and scaffolding (see `PROJECT.md`'s Hackathon Build Plan) — do not present pre-built application logic as sprint output.
+- Before calling any feature "done," check it against the Compliance Checklist and the Judging Criteria table in `PROJECT.md`.
+- If a requested change would violate any of the above (e.g., "let's skip Twilio and mock the call," "let's cut guardrails to save time"), say so explicitly and ask for confirmation before proceeding — do not silently comply.
+
 ### Source of truth
 
 - [`PROJECT.md`](PROJECT.md) is the single source of truth and backbone of this project (problem, architecture, data model, database design, tech stack, workflows, build plan). Note: the team's generic prompt refers to it as `projects.md` — this repo's actual file is `PROJECT.md`; always read/update that one.

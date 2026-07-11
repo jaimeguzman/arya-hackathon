@@ -12,6 +12,71 @@
 
 ---
 
+## Official Challenge Brief (Strict — Do Not Deviate)
+
+This section is copied verbatim in substance from the hackathon organizers' brief. It is the binding rule set for what "done" means. Every planning and implementation decision must satisfy this before anything else — it overrides convenience, scope creep, or feature ideas not traceable back to it.
+
+### About the Challenge
+
+Healthcare Hack NYC is a one-day, in-person sprint hosted with Arya Health — a Series A startup reimagining the economics of healthcare services — at their NYC office. Main sponsor: Twilio's AI Startup Searchlight, celebrating startups building the future of voice, conversational AI, and LLM-powered agents. The goal: bring a laptop, form a team, ship a real AI agent in a single day.
+
+### The Challenge
+
+Build production-ready voice/text AI agents that can carry out a full conversation end-to-end, grounded in domain knowledge and personalized to each caller. **Reliability, guardrails, security, and scalability are not nice-to-haves — they are the prerequisite.**
+
+**You must use Twilio to qualify for sponsor prizes. This is non-negotiable.**
+
+### What to Build
+
+A conversational agent that handles a real healthcare workflow — patient intake, scheduling, reminders, insurance verification, caregiver follow-up — from hello to done. Suggested building blocks:
+
+- **Telephony** — must use Twilio to qualify for prizes
+- **Agent Development Framework** — orchestrate and modularize the conversation logic
+- **Model (TTS/STT)** — power the conversation with the best voice AI models
+- **Knowledge Base** — connect to external sources and data for enriched, grounded context
+- **Caller Info** — recognize and personalize the conversation to the individual caller
+
+### Requirements — What to Build
+
+A working voice or text conversational AI agent that carries out a full healthcare conversation end-to-end — grounded in domain knowledge and personalized to the caller.
+
+- Must use Twilio for telephony to qualify for sponsor prizes.
+- Everything must be built during the sprint and demoed live.
+- Reliability, guardrails, security, and scalability are part of the bar, not extras.
+
+### Requirements — What to Submit
+
+On the Devpost project page:
+
+- Project name and a one-line description
+- What was built and why (the problem being solved)
+- Tools and technologies used (including how Twilio was used)
+- Team member names and roles
+- Link to the live demo / prototype / videos
+
+### Judging Criteria (1–5 each)
+
+| Criterion | What it measures |
+|---|---|
+| **Technical Implementation** | Technical architecture and design, production readiness, security, scalability, reliability |
+| **Idea Uniqueness** | How original and non-obvious the concept is, whether it actually works end-to-end, and how well it was built |
+| **Team Explanation** | How clearly the team explains the problem, solution, and how it works |
+| **UI/UX** | Usability and quality of the experience |
+
+### Compliance Checklist (verify before demo/submission)
+
+- [ ] Telephony runs through Twilio (voice and/or SMS) — no Twilio, no prize eligibility
+- [ ] The demoed flow is a full conversation end-to-end ("hello to done"), not a fragment
+- [ ] Guardrails are visibly enforced (no medical advice, no premature admission confirmation, escalation on low confidence) — see [Feature 6: Guardrails & Compliance](#feature-6-guardrails--compliance)
+- [ ] Security posture is explainable on demand (PHI handling, encrypted storage, auth) — see [Database Architecture](#database-architecture)
+- [ ] Scalability story is explainable on demand (concurrent calls, modular agents) — see [Judging Criteria Alignment](#judging-criteria-alignment)
+- [ ] Caller personalization is demonstrable — see [Feature 5: Caller Personalization](#feature-5-caller-personalization)
+- [ ] Knowledge grounding is demonstrable (ICD-10/Neo4j, not free-floating LLM guesses) — see [Neo4j — Knowledge Graph](#neo4j--knowledge-graph)
+- [ ] Everything shown was built during the sprint (pre-work is data/scaffolding only, per [Hackathon Build Plan](#hackathon-build-plan))
+- [ ] Devpost submission has: project name + one-liner, problem/solution writeup, tools used (incl. Twilio usage), team roles, live demo link
+
+---
+
 ## The Problem
 
 ### Who is the customer?
