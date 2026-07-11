@@ -24,7 +24,7 @@
       "Verify settings are loaded from environment variables (pydantic-settings) with no hardcoded URLs or keys. Expected result: the command/check completes successfully with no blocking errors.",
       "Start the app and GET /health returns 200 with per-dependency status (postgres, neo4j, redis). Expected result: the endpoint returns the documented status code and JSON shape."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,
@@ -37,7 +37,7 @@
       "Run npm run build in apps/dashboard with zero type errors. Expected result: the command/check completes successfully with no blocking errors.",
       "Run npm run dev and confirm HTTP 200 on the base route. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,

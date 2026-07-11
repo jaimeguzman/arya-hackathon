@@ -74,6 +74,8 @@ ENV/
 *.egg-info/
 .eggs/
 htmlcov/
+.coverage
+.coverage.*
 
 # ===========================================================================
 # Logs & temporary files
@@ -118,6 +120,15 @@ desktop.ini
 # ===========================================================================
 .claude/settings.local.json
 .claude/*.local.md
+.claude/scheduled_tasks.lock
+.claude/.cc-writes/
+.claude_agent_settings.json
+
+# ===========================================================================
+# Scratchpad (throwaway scripts, intermediate outputs)
+# ===========================================================================
+.temp/
+CLAUDE.local.md
 
 # ===========================================================================
 # Misc
