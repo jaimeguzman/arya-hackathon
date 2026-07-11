@@ -23,6 +23,8 @@ class CheckResult:
     status: EligibilityStatus
     reason: str
     matched_plan: PlanContract | None = None
+    fuzzy: bool = False
+    documentation_needs: tuple[str, ...] = ()
 
 
 def check_service_area(patient_zip: str | None, data: ReferenceData) -> CheckResult:
@@ -119,6 +121,7 @@ def check_insurance(
                 f"'{fuzzy.plan}' ({canonical_payer})"
             ),
             matched_plan=fuzzy,
+            fuzzy=True,
         )
 
     return CheckResult(
@@ -127,4 +130,50 @@ def check_insurance(
             f"plan not accepted: '{plan_name}' does not match any contracted "
             f"{canonical_payer} plan"
         ),
+    )
+
+
+def check_coverage(
+    matched_plan: PlanContract | None,
+    service_type: str | None,
+) -> CheckResult:
+    """Cross-check InsurancePlan-COVERS->ServiceType and prior-auth needs.
+
+    Feature 23 (core_features/eligibility_engine): an uncovered service is a
+    black-and-white DECLINE; REQUIRES_AUTH surfaces 'prior authorization
+    required' as a documentation need on a covered service.
+    """
+    if matched_plan is None:
+        return CheckResult(
+            status=EligibilityStatus.NEEDS_MORE_INFO,
+            reason="insurance plan not resolved — cannot verify service coverage",
+        )
+    if not service_type or not service_type.strip():
+        return CheckResult(
+            status=EligibilityStatus.NEEDS_MORE_INFO,
+            reason="requested service type not provided",
+        )
+    service = service_type.strip()
+    if service not in matched_plan.covers:
+        return CheckResult(
+            status=EligibilityStatus.DECLINE,
+            reason=(
+                f"service not covered: plan '{matched_plan.plan}' "
+                f"({matched_plan.payer}) does not cover '{service}'"
+            ),
+        )
+    documentation_needs: tuple[str, ...] = ()
+    if matched_plan.requires_prior_auth:
+        documentation_needs = (
+            f"prior authorization required by {matched_plan.payer} "
+            f"plan '{matched_plan.plan}'",
+        )
+    return CheckResult(
+        status=EligibilityStatus.ACCEPT,
+        reason=(
+            f"service '{service}' is covered by plan "
+            f"'{matched_plan.plan}' ({matched_plan.payer})"
+        ),
+        matched_plan=matched_plan,
+        documentation_needs=documentation_needs,
     )

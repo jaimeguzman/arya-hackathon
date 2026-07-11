@@ -303,7 +303,7 @@
       "Verify REQUIRES_AUTH surfaces 'prior authorization required' in the result's documentation needs. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit tests cover covered, uncovered, and auth-required plans using payer_coverage_rules.json. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 24,
@@ -316,7 +316,7 @@
       "Verify any ambiguity (no caregiver match, missing fields, fuzzy insurance) yields NEEDS_MORE_INFO with specific missing items. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit tests assert an ambiguous case never returns DECLINE. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 25,
