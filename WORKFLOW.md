@@ -10,6 +10,133 @@ If this file and any of the above ever disagree, `PROJECT.md` > `must-have.md` >
 
 ---
 
+## Progress Report & Parallel Work Plan (snapshot: 2026-07-11)
+
+This section is a point-in-time status snapshot, not an evergreen part of the workflow narration below — update or replace it as work lands, don't let it drift into fiction. Status is checked against this file's own architecture (Orchestrator, Voice Agent, Document Pipeline, Eligibility Agent, Follow-up Agent), not any external phase numbering.
+
+### What's done
+
+| Component | Status | Evidence |
+|---|---|---|
+| **Data layer** (PostgreSQL schema, Neo4j constraints, Redis, seed data, loader script, DB connection utils) | ✅ Done | `local/` — docker-compose, `postgres_init.sql` (11 tables), `neo4j_seed.cypher`, `sample_data.py` loader, `database.py` (SQLAlchemy async + Neo4j + Redis clients), `config.py`. Verified per git log ("phase-1: verify all databases connected and seeded") |
+
+### What's pending
+
+| Component | Status |
+|---|---|
+| FastAPI backend skeleton (health check, WebSocket stub) | ❌ Not started |
+| Eligibility Agent (`check_eligibility()`, Neo4j+Postgres traversal, ACCEPT/DECLINE/NEEDS_MORE_INFO) | ❌ Not started — graph/schema ready, no service code |
+| Document Pipeline (7 layers) | ❌ Not started — test fixtures exist (`data/synthetic/referral_faxes/`, 3 real fax PDFs), no extraction/validation/correction code |
+| Voice Agent (Twilio ConversationRelay, consent gather, tokenize/rehydrate, banned-phrase filter, provider/family/outbound modes) | ❌ Not started |
+| Orchestrator (LangGraph state machine) | ❌ Not started |
+| Follow-up Agent (SMS, retries, escalation) | ❌ Not started |
+| Guardrail enforcement code (the 6 `must-have.md` safety guarantees as actual code) | ❌ Not started — documented only, no `guardrail_service.py` or runtime enforcement |
+| Dashboard (React) | ❌ Not started |
+| Twilio account/number provisioning | ⚠️ Unknown — `.env.example` has empty Twilio fields, can't verify from the repo; confirm with the team |
+
+### Two conflicts to resolve first (flagged, not silently resolved)
+
+1. **Duplicate seed data, only one copy is real.** [`data/`](data/) (reference/synthetic JSON + fax PDFs) and [`local/data/`](local/data/) (7 JSON files, different names/shape) both exist. **Only `local/data/` is actually loaded into the running databases** — `data/` is currently unused by any code. Reconcile into one source before the Eligibility Agent is built against it.
+2. **Folder structure mismatch.** [`architecture.md`](architecture.md#8-proposed-module-layout-not-yet-built--for-file-ownership-planning) §8 proposes code under `apis/`, `ai-agents/`, `infra/`, `apps/`, `services/`. The actual merged code lives under a separate `local/backend/` tree instead. Pick one before more code lands in two places.
+
+### Four parallel tasks
+
+```
+Task 1 — Voice Agent
+
+Developer: Person 1
+Goal: Build the Twilio ConversationRelay voice handling for all 3 call modes with every safety gate from must-have.md wired in.
+Files Owned:
+- ai-agents/ (provider/family/outbound prompts + conversation flow specs)
+- apis/app/routes/voice.py, apis/app/main.py (FastAPI skeleton + WebSocket endpoint — coordinate with Task 4 on shared main.py structure)
+Classes/Functions Owned:
+- Consent-gather node, tokenize()/rehydrate() wrapper, filter_response()/speak(), handle_turn() failure-handoff wrapper (must-have.md #6)
+Dependencies:
+- Task 3's reconciled eligibility-check contract (can build against a mocked response shape in the meantime — don't block)
+Implementation Steps:
+1. FastAPI skeleton + health check + WebSocket stub for Twilio
+2. Consent gather as literal entry point (must-have.md #4)
+3. Provider mode, family mode, outbound mode conversation flows
+4. Tokenize/rehydrate wrapper (must-have.md #2) + banned-phrase filter (must-have.md #5)
+5. Failure-handoff wrapper — every turn caught, never a silent drop (must-have.md #6)
+6. Call transcript capture
+Documentation To Update: ai-agents/README.md, WORKFLOW.md if the real flow diverges from what's documented
+Expected Completion Criteria: A live or /voice/test call completes provider, family, and outbound scenarios end-to-end without the LLM ever seeing raw PII, without any un-filtered response reaching TTS, and without a call ever silently dropping.
+```
+
+```
+Task 2 — Document Pipeline
+
+Developer: Person 2
+Goal: Build the 7-layer extraction pipeline and prove it against the 3 real fax PDFs already in data/synthetic/referral_faxes/.
+Files Owned:
+- apis/app/routes/documents.py
+- Document pipeline module (layers 1-7: ingest, classify, OCR-route, extract, validate/correct/cross-reference, gap-check, confidence-score)
+Classes/Functions Owned:
+- Validation Agent, Correction Agent, Cross-Reference Agent, confidence scoring
+Dependencies:
+- Task 3's reconciled reference data (ICD-10 codes, med dosage ranges) for validation lookups
+Implementation Steps:
+1. PDF ingestion + preprocessing
+2. Page classification
+3. Dual-path extraction (rules for clean PDFs, vision for REF-1003's degraded scan)
+4. Agentic review loop (Validation → Correction → Cross-Reference)
+5. Completeness check + gap list
+6. Confidence scoring and routing
+Documentation To Update: WORKFLOW.md if extraction behavior diverges from the documented 7 layers
+Expected Completion Criteria: All 3 sample fax PDFs process end-to-end; REF-1003's intentional OCR ambiguities (NPI "1245O78823", dosage "200mg") get correctly flagged, not silently auto-populated.
+```
+
+```
+Task 3 — Eligibility Agent + Data Reconciliation (BLOCKING — do first)
+
+Developer: Person 3
+Goal: Resolve the two conflicts found above, then build check_eligibility() as deterministic code per must-have.md #3.
+Files Owned:
+- Reconciliation: decide data/ vs local/data/ as the single source, migrate/delete the loser, update the loader if needed
+- Reconciliation: decide local/backend/ vs apis/+infra/ as the real code location, migrate if needed
+- Eligibility service + POST /eligibility-check endpoint
+Classes/Functions Owned:
+- check_eligibility(zip, payer, plan, service_type), generate_agent_response() gate
+Dependencies:
+- None — this unblocks everyone else, should start immediately
+Implementation Steps:
+1. Reconcile data/ vs local/data/ (pick one, document the decision in data/README.md)
+2. Reconcile folder structure (pick one, update architecture.md §8 to match reality)
+3. Neo4j traversal: diagnosis → service → certification → caregiver → area
+4. PostgreSQL queries: service area, insurance contract, caregiver availability
+5. Accept/decline/needs-more-info logic (bias toward needs-more-info on ambiguity)
+6. Unit test: clear-yes, clear-no, ambiguous case (must-have.md #3 CI requirement)
+Documentation To Update: data/README.md, architecture.md §8, PROJECT.md build plan
+Expected Completion Criteria: check_eligibility() returns correct ACCEPT/DECLINE/NEEDS_MORE_INFO for the 4 sample referral scenarios, in under 3 seconds, and the repo has exactly one seed-data source and one code-location convention.
+```
+
+```
+Task 4 — Orchestrator + Follow-up Agent + Dashboard scaffold
+
+Developer: Person 4
+Goal: LangGraph state machine tying everything together, plus outbound follow-up logic and a minimal dashboard shell.
+Files Owned:
+- apis/app/agents/orchestrator.py (LangGraph state machine)
+- services/ (Follow-up Agent: SMS, retry scheduling, escalation)
+- apps/dashboard/ (React shell — can start as static/mock until Tasks 1-3 have real endpoints)
+Classes/Functions Owned:
+- Orchestrator routing logic, Follow-up Agent (retry-in-2-hours, escalate-after-3-attempts)
+Dependencies:
+- Task 3's /eligibility-check endpoint contract (agree on the shape early, build against a stub if not ready)
+Implementation Steps:
+1. LangGraph state machine: received → processing → eligibility → decision → follow-up
+2. Wire routing: document pipeline output triggers eligibility, eligibility triggers voice/follow-up actions
+3. Follow-up Agent: SMS via Twilio, retry logic, 3-attempt escalation
+4. Dashboard shell: referral list, status, confidence scores, gap list (polling a mock endpoint is fine initially)
+Documentation To Update: WORKFLOW.md if orchestration logic diverges from the 3 documented flows
+Expected Completion Criteria: A referral fed into the orchestrator (from either mock voice or mock fax data) reaches a final status with the correct follow-up action triggered, and the dashboard shows it.
+```
+
+Task 3 should start first since it unblocks the data-source question everyone else depends on — but Tasks 1, 2, and 4 can all start immediately against mocked/stubbed contracts without waiting.
+
+---
+
 ## The one-sentence architecture
 
 One "brain" (the Orchestrator) never talks to anyone or reads anything directly — it routes work to four specialists (Voice Agent, Document Pipeline, Eligibility Agent, Follow-up Agent) and makes the final call using deterministic code, never the AI's opinion.
