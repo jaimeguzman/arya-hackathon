@@ -1,0 +1,653 @@
+<project_specification>
+  <project_name>IntakeAI - Intelligent Patient Intake Agent for Home Health Agencies</project_name>
+
+  <overview>
+    Build IntakeAI, an intelligent patient intake agent that ensures a home health agency never
+    misses a patient because nobody picked up the phone, and never loses a patient because they
+    were too slow to respond. The system handles the entire intake workflow from referral received
+    to patient admitted — across 24/7 voice calls, fax/PDF processing, SMS, and email — with
+    real-time eligibility checking grounded in a knowledge graph, a 7-layer document extraction
+    pipeline with an agentic validation-correction loop, caller personalization, and a real-time
+    intake dashboard. Built by a 4-developer team in a one-day hackathon sprint (AI Healthcare
+    Hack NYC, hosted by localhost:nyc and Arya Health, sponsored by Twilio AI Startup Searchlight).
+  </overview>
+
+  <hackathon_constraints>
+    <official_rules>
+      These are hard constraints from the organizers' brief (see PROJECT.md "Official Challenge
+      Brief") — non-negotiable, they override convenience and scope creep:
+      - Twilio is MANDATORY for telephony. No sponsor-prize eligibility without it. Never use
+        another voice/SMS provider as the primary channel.
+      - The demo must be a FULL end-to-end conversation ("hello to done") for a real healthcare
+        workflow — not a partial flow or a mocked segment.
+      - Reliability, guardrails, security, and scalability are prerequisites, not stretch goals.
+      - Everything demoed must be built during the sprint. Pre-work is limited to data prep and
+        scaffolding only — no pre-built application logic.
+      - Before calling any feature "done," verify against the Compliance Checklist and Judging
+        Criteria in PROJECT.md.
+    </official_rules>
+    <judging_criteria>
+      Scored 1-5 each:
+      - Technical Implementation: architecture, production readiness, security, scalability, reliability
+      - Idea Uniqueness: originality, whether it actually works end-to-end, build quality
+      - Team Explanation: clarity of problem, solution, and how it works
+      - UI/UX: usability and quality of the experience
+    </judging_criteria>
+    <team>4 engineers, 5-hour build window, live demo + judging</team>
+  </hackathon_constraints>
+
+  <problem_statement>
+    <customer>
+      Home health agencies — companies that employ caregivers (nurses, physical therapists, home
+      health aides) and send them to patients' homes after hospital discharge, surgery recovery,
+      or for chronic condition management. These agencies are Arya Health's customers. Arya Health
+      has 5 caregiver-facing agents (Staffing, Compliance, Onboarding, Payroll, Engagement) — all
+      supply side. The Intake Agent (demand side, patients coming in) is their announced next
+      product and this project prototypes it.
+    </customer>
+    <referral_channels>
+      1. Hospital discharge planner sends a fax — dominant channel: 35-100+ page PDF referral packets
+      2. Hospital discharge planner calls — wants an immediate yes/no
+      3. Family member calls — worried, no clinical details, needs guidance
+      4. Physician's office sends a referral — fax or phone
+      5. Skilled nursing facility (SNF) refers a patient stepping down to home care
+      6. Patient self-refers — rare for skilled care (needs physician order)
+    </referral_channels>
+    <evidence>
+      - Referral conversion dropped from 77% to 64% since 2018; agencies lose over a third of referrals
+      - $200-500M lost annually industry-wide to referral leakage
+      - Most loss happens in the first 70 minutes after a referral arrives
+      - 70 minutes to manually review an average referral packet
+      - Median referral-to-start-of-care exceeds 69 hours; 13+ hours inside intake alone
+      - Discharge planners work with 3-5 agencies simultaneously; whoever responds first wins
+      - ~20% of referrals arriving outside business hours are missed
+      - 30% of referrals are rejected for service mismatches that could be caught instantly
+      - Incomplete documentation accounts for over 51% of improper payments in home health
+      - Medicare best practice: first visit within 48 hours of referral
+    </evidence>
+  </problem_statement>
+
+  <technology_stack>
+    <backend>
+      <framework>FastAPI (Python)</framework>
+      <agent_orchestration>LangGraph state machine</agent_orchestration>
+      <llm>Gemini Flash (entity extraction, agentic review, conversation reasoning)</llm>
+      <document_parsing>Docling (text-layer PDFs) + Gemini Flash vision (image PDFs)</document_parsing>
+    </backend>
+    <telephony>
+      <voice>Twilio ConversationRelay (WebSocket, streaming STT/TTS)</voice>
+      <sms>Twilio Programmable SMS</sms>
+      <speech>Twilio-integrated STT/TTS (or Deepgram/ElevenLabs via ConversationRelay)</speech>
+      <note>Twilio is mandatory for prize eligibility — no substitutes</note>
+    </telephony>
+    <databases>
+      <postgresql>Operational data: intake records, caregiver roster, service areas, insurance contracts, transcripts, audit trails, reference tables (JSONB for extraction output). ACID transactions prevent double-accepting a patient.</postgresql>
+      <neo4j>Knowledge graph: 13 node types, 14 relationship types. Eligibility check is a 6-hop path traversal (diagnosis -> service type -> certification -> caregiver -> service area, cross-checked against insurance coverage).</neo4j>
+      <redis>Ephemeral state: document pipeline layer state, live call state, eligibility result caching, retry scheduling, Twilio rate limiting.</redis>
+      <pgvector>PostgreSQL extension for fuzzy matching: insurance plan names, medication name variants, physician names. pg_trgm may suffice for hackathon scope.</pgvector>
+    </databases>
+    <frontend>
+      <framework>React (intake dashboard for demo)</framework>
+    </frontend>
+    <infrastructure>
+      <local>Docker Compose: PostgreSQL + pgvector, Neo4j, Redis, FastAPI, React dev server</local>
+      <tunnel>ngrok — Twilio needs a public webhook URL to reach the local FastAPI WebSocket server</tunnel>
+      <external>Twilio, Gemini Flash API, NPPES NPI Registry API (free, no auth), RxNorm API (free)</external>
+    </infrastructure>
+  </technology_stack>
+
+  <safety_requirements>
+    <!-- From must-have.md Part 1 — non-negotiable, enforced BY THE CODE ITSELF on every
+         execution, never by a human remembering a checklist. The design principle: make the
+         unsafe path impossible to reach in code. A single CI suite (test_safety_layer.py) runs
+         all 6 on every commit; if any fails, the build fails. -->
+    <guarantee number="1">
+      <name>Fake data only — no real PHI ever touches the system</name>
+      <enforcement>Every record tagged is_synthetic: true; hard assertion on every DB write refuses non-synthetic records; app refuses to boot unless pointed at an allowlisted demo database.</enforcement>
+    </guarantee>
+    <guarantee number="2">
+      <name>Tokenize -> LLM -> Rehydrate wrapper</name>
+      <enforcement>The LLM never receives raw identifiers (name, DOB, phone, address, member ID). Exactly ONE function may call the LLM API; it regex-scans its outgoing payload for identifier patterns and refuses to send on match. Rehydration happens only inside the backend after the LLM responds.</enforcement>
+    </guarantee>
+    <guarantee number="3">
+      <name>check_eligibility() as deterministic code — never LLM-decided</name>
+      <enforcement>Eligibility (zip match, insurance accepted, caregiver availability) is plain code against known tables. The response-generation function requires a pre-computed eligibility result object as input — structurally impossible to answer accept/decline from the LLM's opinion. CI test feeds clear-yes, clear-no, and ambiguous cases and asserts correct status.</enforcement>
+    </guarantee>
+    <guarantee number="4">
+      <name>Consent gather — first node in every call flow</name>
+      <enforcement>Every call opens with an AI + recording disclosure and yes/no consent BEFORE any data collection. "No" routes to human transfer or graceful end. Every data-collection function requires consent_given=True, read from the persisted call record, and refuses to run without it. The consent node is the only node wired to the incoming-call trigger.</enforcement>
+    </guarantee>
+    <guarantee number="5">
+      <name>Banned-phrase filter on agent output before TTS</name>
+      <enforcement>No response reaches TTS without passing a banned-phrase list ("guarantee", "promise", "definitely will", "100%", "for sure", "confirmed appointment at"). speak() only accepts a SafeResponse typed object that filters on construction — the type system blocks any bypass. CI test asserts over-promising input never reaches output.</enforcement>
+    </guarantee>
+    <guarantee number="6">
+      <name>No silent call drop — every failure degrades to human handoff</name>
+      <enforcement>Every call turn is wrapped in a try/except boundary. Any exception, timeout, or a clarification_attempts counter crossing threshold routes to the same handoff path as a consent "no": spoken fallback ("Let me connect you with a coordinator") + human transfer or scheduled callback. CI test force-raises mid-turn and asserts a spoken response + logged handoff.</enforcement>
+    </guarantee>
+  </safety_requirements>
+
+  <agent_architecture>
+    <core_principle>
+      The Intake Agent (LangGraph) is the orchestrator — the brain. It never talks to callers,
+      never reads documents, never queries databases directly. It manages workflow state, routes
+      tasks to four specialized sub-agents, makes admit/decline decisions using deterministic
+      code (never the LLM's opinion), and tracks the referral lifecycle from received ->
+      processed -> decided.
+    </core_principle>
+    <sub_agents>
+      <voice_agent>
+        The mouth and ears. Handles phone calls via Twilio ConversationRelay. Listens, speaks,
+        extracts structured data from caller speech. Does NOT make decisions — reports to the
+        orchestrator and follows its instructions. Two layers of control:
+        - Layer 1 (static): scenario-based system prompt assigned before the call — Provider mode
+          (clinical, efficient, structured), Family mode (compassionate, plain language, no
+          jargon, never promises coverage), Patient mode (slower pace, explains physician order
+          requirement, handles confusion), Outbound mode (one specific mission: collect a missing
+          document, verify a detail, or schedule a visit).
+        - Layer 2 (dynamic): mid-call, extracted data flows to the orchestrator -> Eligibility
+          Agent -> result returns with specific instructions for what to say next. Whole loop
+          must complete in 2-3 seconds; if longer, natural filler speech ("Let me check our
+          availability for that area... one moment").
+      </voice_agent>
+      <document_pipeline>
+        Reads and analyzes every fax/PDF through the 7-layer extraction pipeline (see
+        document_pipeline section). Produces structured JSON with confidence scores and a gap
+        list. Never decides eligibility, never contacts anyone.
+      </document_pipeline>
+      <eligibility_agent>
+        Takes extracted patient data, traverses PostgreSQL + Neo4j, returns exactly one of
+        ACCEPT / DECLINE / NEEDS_MORE_INFO with specific reasons. Deterministic code — never an
+        LLM call. Biased toward NEEDS_MORE_INFO over DECLINE on ambiguity; DECLINE fires only on
+        black-and-white facts (zip not served, insurance not accepted). The only agent allowed
+        to write eligibility/acceptance decisions.
+      </eligibility_agent>
+      <follow_up_agent>
+        SMS confirmations, email follow-ups, document request links, retry logic (voicemail ->
+        retry in 2 hours; unanswered SMS -> follow up next morning; 3 failed contact attempts ->
+        escalate to human coordinator), callback scheduling. Outbound calls re-enter the same
+        safety-gated flow — there is no separate unguarded outbound path.
+      </follow_up_agent>
+    </sub_agents>
+    <safety_gated_call_flow>
+      Every conversation turn passes through 4 gates, in order:
+      1. Caller speaks -> Voice Agent extracts structured data
+      2. Tokenize: identifiers replaced with placeholders ({{PATIENT_NAME}}) before reaching the LLM
+      3. Deterministic check_eligibility() runs in parallel on structured fields (zip, payer,
+         service type — never names) -> ACCEPT / DECLINE / NEEDS_MORE_INFO
+      4. LLM drafts response (still tokenized) -> rehydrated inside the backend -> banned-phrase
+         filter -> only then TTS
+      Consent gather is always the first node. Failures route to spoken fallback + human handoff.
+    </safety_gated_call_flow>
+    <data_access_rules>
+      - Voice Agent -> Redis (live call state)
+      - Document Pipeline -> Redis (pipeline state) + PostgreSQL (reference lookups, pgvector fuzzy matching)
+      - Eligibility Agent -> PostgreSQL + Neo4j + Redis (cache); only heavy Neo4j consumer
+      - Follow-up Agent -> PostgreSQL (event log, status) + Redis (retry timers)
+      - No agent writes acceptance decisions except the Eligibility Agent
+    </data_access_rules>
+  </agent_architecture>
+
+  <document_pipeline>
+    <!-- 7 layers + agentic review loop. Runs on every fax/PDF referral packet. -->
+    <layer number="1" name="Ingestion and Preprocessing">
+      Fax arrives as PDF/TIFF -> standardize -> page-level cleanup (deskew, denoise, contrast
+      enhancement) -> detect scanned-image vs digital-text pages.
+    </layer>
+    <layer number="2" name="Page Classification">
+      Classify each page: physician order, face-to-face encounter note, discharge summary,
+      medication list, insurance card, lab results, consent form, fax cover sheet (junk).
+      Downstream extractors need to know the document type.
+    </layer>
+    <layer number="3" name="OCR Strategy Router (Dual-Path)">
+      Path B — rule-based for clean digital PDFs: Docling parses text layers, then regex/keyword
+      matching (patient name after "Patient:"/"Name:", ICD pattern letter+digits, payer-specific
+      member ID formats, NPI always 10 digits). Deterministic, fast, reliable.
+      Path C — LLM vision for messy image PDFs: handwritten notes, angled insurance cards,
+      smudged med lists. Gemini Flash vision extracts fields directly from the image.
+    </layer>
+    <layer number="4" name="Entity Extraction">
+      Both paths converge into standardized raw JSON per page with all extracted fields.
+    </layer>
+    <layer number="5" name="Agentic Review Loop">
+      Runs on EVERY document. Three agents in sequence:
+      - Validation Agent: valid ICD-10 code (table lookup)? Real NPI (Luhn check + NPPES registry)?
+        Member ID matches payer format? DOB reasonable? Discharge after admission? Real zip?
+        Medication dosage within clinical range (Metformin 500-2000mg normal, 50000mg is OCR error)?
+      - Correction Agent: reasons about validation failures against the original image.
+        "M17.1I" -> "I" was "1" -> "M17.11", high confidence, auto-correct. "H12O456789" -> "O"
+        probably "0", medium confidence, flag for review. "Lisinopril 200mg" -> can't confidently
+        correct, low confidence, flag for human review + add to gap list for Voice Agent to verify.
+      - Cross-Reference Agent: consistency across pages — same patient name/DOB across documents,
+        diagnosis text matches ICD code, medication list consistent with diagnoses (Warfarin with
+        no anticoagulation indication -> flag for clinical review).
+    </layer>
+    <layer number="6" name="Completeness Check and Gap Identification">
+      Check against requirements checklist: demographics complete, signed physician orders,
+      face-to-face documentation, insurance info, diagnosis + ICD codes, homebound status,
+      medication list. Each missing item becomes a specific follow-up task for the Voice Agent.
+    </layer>
+    <layer number="7" name="Confidence Scoring and Routing">
+      - HIGH (rules + validated + confirmed across documents) -> auto-populate intake record
+      - MEDIUM (LLM vision + validated, single document) -> auto-populate + flag for review
+      - LOW (failed validation, uncertain correction) -> withhold; add to gap list for Voice Agent
+    </layer>
+  </document_pipeline>
+
+  <core_features>
+    <inbound_call_handling>
+      <!-- Feature 1: 24/7 — must-have, very high impact, core value prop -->
+      - Twilio number always answered by the AI agent — nights, weekends, holidays
+      - Caller type detection (provider vs family vs patient) with adaptive conversation flow
+      - Provider calls: structured clinical intake, real-time eligibility check during the call,
+        immediate accept/decline/need-more-info, specific ask for missing documents, SMS/email
+        confirmation after the call
+      - Family calls: compassionate guided conversation in plain language, captures what they
+        know, explains the process, sets realistic expectations, schedules coordinator follow-up,
+        never promises coverage or availability
+      - Patient self-referrals: patient-appropriate pace, handles confused or elderly callers,
+        explains physician order requirement for skilled care, offers to coordinate with their
+        doctor, captures contact info for follow-up
+    </inbound_call_handling>
+
+    <fax_processing>
+      <!-- Feature 2 -->
+      - Automatic processing through the 7-layer pipeline
+      - Within minutes of arrival the system knows: who the patient is, what they need, whether
+        we can serve them, and what's missing
+    </fax_processing>
+
+    <eligibility_engine>
+      <!-- Feature 3: must-have, nothing else works without it -->
+      - Service area check: do we serve this zip code?
+      - Insurance check: do we accept this payer and plan?
+      - Clinical matching: diagnosis -> service type we offer -> certifications we have
+      - Caregiver availability: right certifications, right area, right timeframe
+      - Coverage rules: prior auth required? What documentation is needed?
+      - Outcomes: ACCEPT (with matched caregiver and remaining documentation needs), DECLINE
+        (fast and honest, so the referral source can place the patient elsewhere), NEEDS_MORE_INFO
+        (specific missing information before deciding)
+    </eligibility_engine>
+
+    <outbound_follow_up>
+      <!-- Feature 4 -->
+      - Outbound voice call to referring provider for missing documents / verification
+      - Outbound voice call to patient/family to confirm address and schedule the first visit
+      - SMS/email confirmations with referral status and document upload links
+      - Retry logic: voicemail -> retry in 2 hours; unanswered SMS -> next morning; 3 failed
+        attempts -> escalate to human coordinator
+      - All outbound calls go through the same safety-gated flow (consent, tokenize, filter)
+    </outbound_follow_up>
+
+    <caller_personalization>
+      <!-- Feature 5: demonstrable for judging -->
+      - Recognizes returning callers ("Hi Sarah, calling from Mount Sinai? Go ahead with the
+        referral details.")
+      - Remembers referral source history: referral count, acceptance rate, preferred
+        communication method (PostgreSQL referral-source history feeds the Voice Agent)
+      - Context carries across interactions (family called yesterday -> today's follow-up has
+        full context)
+    </caller_personalization>
+
+    <guardrails_compliance>
+      <!-- Feature 6: visibly enforced for judging -->
+      - Clinical: never gives medical advice; never confirms caregiver assignment before
+        eligibility is verified; flags clinically suspicious data; HIPAA-appropriate boundaries
+      - Operational: never promises admission before the Eligibility Agent confirms; always
+        names a human coordinator as final confirmer; escalates on low confidence or complexity;
+        full audit trail of every decision and its inputs
+      - Data: confidence scoring keeps low-confidence data out; cross-document validation catches
+        inconsistencies; every extracted field traceable to source document and page
+    </guardrails_compliance>
+
+    <intake_dashboard>
+      <!-- Feature 7: must-have — audit trail + human-confirmation checkpoint -->
+      - All active referrals and pipeline status (new -> processing -> eligible -> accepted/declined)
+      - Extracted data per referral with confidence scores (green/yellow/red)
+      - Gap list: what's missing and what actions have been taken per gap
+      - Call transcripts for every voice interaction, consent status per call
+      - Caregiver match results: which caregivers were considered and why selected/ruled out
+      - Referral source analytics: volume, acceptance rates, average response times
+      - Time-to-decision metrics
+    </intake_dashboard>
+  </core_features>
+
+  <data_model>
+    <patient>
+      - Name, date of birth, gender
+      - Address (street, city, state, zip code), phone number
+      - Emergency contact (name, phone, relationship)
+      - Primary language spoken
+    </patient>
+    <clinical>
+      - Primary diagnosis with ICD-10 code; secondary diagnoses with ICD-10 codes
+      - Surgical procedures performed
+      - Medications (name, dosage, frequency); allergies
+      - Functional limitations (mobility, self-care ability)
+      - Homebound status (yes/no, reason — required for Medicare)
+      - Hospital admission date, hospital discharge date
+    </clinical>
+    <physician>
+      - Ordering physician name, NPI number, phone, fax, specialty
+      - Face-to-face encounter date
+      - Signed physician orders (care type, visit frequency, duration)
+    </physician>
+    <insurance>
+      - Payer name (Medicare, Medicaid, Humana, Aetna, UnitedHealthcare, etc.)
+      - Plan type (Part A, Part B, Medicare Advantage, PPO, HMO)
+      - Member ID, group number, policy effective date
+      - Prior authorization required (yes/no); authorization number if obtained
+    </insurance>
+    <referral_source>
+      - Referring facility name and type (hospital, SNF, physician office)
+      - Discharge planner / social worker name; phone, fax, email
+      - EHR system used; referral date and time
+    </referral_source>
+    <care_request>
+      - Service types needed (skilled nursing, PT, OT, speech therapy, HHA)
+      - Visit frequency (3x/week, daily, etc.); duration (30/60 days, ongoing)
+      - Urgency level (routine, urgent, start of care within 24 hours)
+      - Special instructions from physician
+    </care_request>
+    <agency_configuration>
+      - Service areas (zip code list); insurance contracts (payers/plans accepted)
+      - Service types offered; operating hours; agency fax/phone numbers
+    </agency_configuration>
+    <caregiver_roster>
+      - Name; type (RN, LPN, CNA, PT, OT, Speech Therapist, HHA)
+      - Certifications held (wound care, IV therapy, pediatric, cardiac, orthopedic, diabetes
+        education, etc.) with expiry dates
+      - Service zip codes; availability schedule; languages spoken
+      - Current patient load; max capacity; status (active, on leave, suspended)
+    </caregiver_roster>
+    <knowledge_reference>
+      - ICD-10 code table (subset: top 30 home health diagnoses — data/reference/icd10_top30_home_health.json)
+      - Diagnosis -> service type mappings; service type -> certification mappings
+        (data/reference/diagnosis_service_certification_mapping.json, hand-authored)
+      - Payer coverage rules (data/reference/payer_coverage_rules.json — 5 payers, 8 plans;
+        Medicare Part A rules real, others simulated but realistic)
+      - RxNorm medication reference — live RxNav API (free, no license for API access)
+      - NPI registry — live NPPES API (free, public, no auth) for physician validation
+      - SNOMED CT -> ICD-10 mapping: OUT OF SCOPE unless a team member has a UTS account
+        (requires signed license agreement — flagged friction point in data/README.md)
+    </knowledge_reference>
+    <pipeline_operational>
+      - Intake record status (new, processing, pending_documents, eligible, accepted, declined)
+      - Extracted fields per document with confidence scores (high/medium/low)
+      - Gap list (what's missing, actions taken, current status)
+      - Call transcripts; consent flags per call
+      - Follow-up actions (SMS sent, call attempted, voicemail left, document received, callback scheduled)
+      - Timestamps for every event (received, extraction complete, eligibility checked, first
+        call made, patient admitted)
+      - All records tagged is_synthetic: true (safety guarantee #1)
+    </pipeline_operational>
+  </data_model>
+
+  <database_schema>
+    <postgresql>
+      - intake_records: id, status, patient JSONB, clinical JSONB, insurance JSONB, referral
+        source, timestamps, is_synthetic flag
+      - extracted_fields: intake_id, field name, value, confidence (high/medium/low), source
+        document + page, extraction path (rules/vision)
+      - gap_list: intake_id, missing item, follow-up action, status, attempts
+      - caregivers: name, type, certifications + expiry, zips, availability, languages, load,
+        capacity, status
+      - service_areas, insurance_contracts, referral_sources (with history for personalization)
+      - call_records: call_sid, mode, consent_given, transcript, timestamps
+      - follow_up_events: type (SMS/call/email), target, result, scheduled retry
+      - audit_trail: every decision + the data that informed it
+      - reference tables: icd10_codes, zip_codes, medication_dosage_ranges
+    </postgresql>
+    <neo4j>
+      13 node types: Patient, Diagnosis (ICD-10), Payer, Insurance Plan, Coverage Rule,
+      Service Type, Certification Type, Caregiver, Service Area, Physician, Referral Source,
+      Medication, Document.
+      14 relationship types: HAS_DIAGNOSIS, HAS_INSURANCE, UNDER_PAYER, COVERS (with conditions),
+      REQUIRES_AUTH, REQUIRES (diagnosis->service), NEEDS_CERTIFICATION, HAS_CERTIFICATION
+      (with expiry), SERVES_AREA, ORDERED_CARE, SENT_REFERRAL, PRESCRIBED_FOR,
+      CONTRAINDICATED_WITH, MENTIONS.
+      Core eligibility traversal: Diagnosis -> REQUIRES -> ServiceType -> NEEDS_CERTIFICATION ->
+      CertType <- HAS_CERTIFICATION <- Caregiver -> SERVES_AREA -> ServiceArea, cross-checked
+      against InsurancePlan -> COVERS -> ServiceType.
+    </neo4j>
+    <redis>
+      - pipeline:{doc_id}: current layer, extracted-so-far, validation status
+      - call:{call_sid}: collected data, remaining questions, clarification_attempts counter
+      - eligibility_cache:{zip}:{payer}:{plan}: cached check results (short TTL)
+      - retry_queue: scheduled callbacks and follow-ups
+      - rate limits for Twilio calls
+    </redis>
+  </database_schema>
+
+  <api_endpoints_summary>
+    <core>
+      - GET /health — service health checks
+      - WS /twilio/conversation-relay — Twilio ConversationRelay WebSocket (voice)
+      - POST /eligibility-check — returns ACCEPT / DECLINE / NEEDS_MORE_INFO with reasons
+      - POST /process-document — runs the 7-layer pipeline, returns structured JSON with gaps
+    </core>
+    <intake>
+      - GET /intakes — list referrals with status (dashboard)
+      - GET /intakes/:id — full intake record: extracted fields, confidence, gaps, transcript
+      - GET /intakes/:id/gaps — gap list with follow-up status
+      - GET /intakes/:id/transcript — call transcripts
+    </intake>
+    <follow_up>
+      - POST /follow-up/sms — send confirmation SMS via Twilio
+      - POST /follow-up/outbound-call — trigger safety-gated outbound call
+      - POST /follow-up/schedule — schedule retry/callback
+    </follow_up>
+    <dashboard_support>
+      - GET /analytics/referral-sources — volume, acceptance rate, response times
+      - GET /analytics/time-to-decision — speed metrics
+      - GET /caregivers/matches/:intake_id — match results with reasons
+    </dashboard_support>
+  </api_endpoints_summary>
+
+  <workflows>
+    <flow name="Discharge planner calls">
+      1. Phone rings -> Twilio routes to WebSocket server -> Voice Agent picks up in PROVIDER MODE
+      2. Consent gather first: "This call may be recorded and is handled by an AI system. Is that okay?"
+         No -> human transfer or graceful end. Yes -> logged, proceed.
+      3. Planner gives referral details -> Voice Agent extracts (name, DOB, diagnosis, insurance, zip)
+      4. Orchestrator -> Eligibility Agent -> Neo4j + PostgreSQL traversal (service area? insurance?
+         diagnosis->service mapping? cert requirements? available caregivers? coverage rules?)
+      5. Returns e.g. ACCEPT, missing F2F encounter note
+      6. Voice Agent (through banned-phrase filter): "We can accept this referral, we have
+         availability within 48 hours. We'll need the face-to-face documentation — can you send that?"
+      7. Call ends -> Follow-up Agent: SMS confirmation with referral ID, intake record created
+         with status PENDING_DOCUMENTS, gap follow-up scheduled in 4 hours
+    </flow>
+    <flow name="Fax referral arrives">
+      1. PDF arrives -> 7-layer pipeline (preprocess, classify, route, extract, validate/correct/
+         cross-reference, completeness, confidence scoring)
+      2. Structured data + gap list -> Orchestrator -> Eligibility Agent
+      3. e.g. ACCEPT but missing F2F note + low-confidence insurance member ID
+      4. Orchestrator triggers: outbound call to provider (verify member ID, request F2F note),
+         outbound call to patient/family (confirm address, schedule first visit), SMS/email with
+         document upload link. Both calls re-enter the safety-gated flow.
+    </flow>
+    <flow name="Family member calls at midnight">
+      1. Voice Agent picks up in FAMILY MODE, compassionate greeting + consent gather
+      2. Captures what the daughter knows (may be incomplete — that's okay)
+      3. Preliminary eligibility check (zip served? insurance type generally accepted? condition
+         within our services?)
+      4. "Based on what you've told me, we should be able to help. A care coordinator will call
+         you tomorrow morning. Could you have your mom's insurance card and her doctor's contact
+         information ready?" — never a firm commitment
+      5. Intake record status NEW, flagged for human coordinator by 9 AM, SMS confirmation sent
+    </flow>
+    <decision_engine>
+      check_eligibility(): all of {zip served, insurance accepted, caregiver with right cert
+      available} -> ACCEPT. Zip or insurance fails (hard, unambiguous) -> DECLINE fast. Anything
+      ambiguous -> NEEDS_MORE_INFO, escalate to human, never guess.
+    </decision_engine>
+    <situation_handling>
+      - Everything checks out on a provider call -> real-time ACCEPT + SMS + intake record
+      - Missing document -> ACCEPT + specific ask + tracked follow-up
+      - Wrong zip / insurance -> fast honest DECLINE
+      - Family at midnight -> preliminary check, coordinator follow-up, no firm commitment
+      - Patient self-refers -> explain physician order requirement, offer to coordinate
+      - Garbled OCR fields -> never auto-populated; gap list; verified by phone
+      - Outbound voicemail -> retry in 2 hours; silent SMS -> next morning; 3 failures -> human
+      - Agent error/timeout/confusion -> spoken fallback + human handoff, never silence
+      - Consent "no" -> transfer or graceful end, zero data collection
+    </situation_handling>
+  </workflows>
+
+  <ui_layout>
+    <dashboard>
+      <!-- React intake dashboard — the demo surface and the coordinator's checkpoint -->
+      - Pipeline board: referrals by status (new -> processing -> pending documents -> eligible ->
+        accepted/declined) with timestamps and urgency badges
+      - Referral detail view: extracted fields with confidence color coding (green/yellow/red),
+        source document traceability, gap list with per-gap action history
+      - Transcript panel: full call transcripts, consent status, caller mode
+      - Caregiver match panel: considered caregivers and selection/rejection reasons
+      - Analytics: referral source volume and acceptance rates, time-to-decision metrics
+      - Needs-review queue: flagged medium/low confidence fields and escalations for the human
+        coordinator
+    </dashboard>
+  </ui_layout>
+
+  <repository_structure>
+    <!-- Matches the repo's proposed module layout (docs/ARCHITECTURE.md §8) and folder READMEs.
+         Designed so 4 developers own non-overlapping files per CLAUDE.md ownership rules. -->
+    - ai-agents/    Agent definitions, prompts, conversation flows, guardrails, knowledge grounding
+    - apis/         FastAPI app, HTTP/WebSocket endpoints, LangGraph orchestrator wiring
+    - apps/         React intake dashboard
+    - services/     Scheduler / follow-up workers (retries, callbacks, escalations via Redis)
+    - infra/        Docker Compose, PostgreSQL migrations, Neo4j Cypher seeds, Twilio setup, .env reference
+    - data/         Reference + synthetic seed data (ICD-10 subset, mappings, payer rules, roster, sample referrals)
+    - docs/         ARCHITECTURE.md (diagrams and flows)
+    - PROJECT.md    Source of truth; must-have.md safety authority; WORKFLOW.md plain-English walkthrough
+  </repository_structure>
+
+  <implementation_steps>
+    <prework>
+      Data prep and scaffolding only — zero application code: PROJECT.md and spec docs,
+      PostgreSQL migration SQL, Neo4j Cypher seed scripts (ICD-10 subset, mappings, insurance
+      rules), 3-4 sample referral PDFs of varying quality, caregiver roster JSON (20-30
+      caregivers), insurance rules JSON (5 payers), Twilio account + phone number, Docker
+      Compose file.
+    </prework>
+    <step number="1">
+      <title>Phase 1 — Foundation (all 4 developers, hour 1)</title>
+      <tasks>
+        - Person 1: FastAPI skeleton, health checks, WebSocket endpoint for Twilio
+        - Person 2: document pipeline scaffolding (upload endpoint, processing queue)
+        - Person 3: PostgreSQL schema migration + Neo4j seed data loading
+        - Person 4: Twilio ConversationRelay configuration, Redis setup
+      </tasks>
+    </step>
+    <step number="2">
+      <title>Phase 2 — Knowledge and Eligibility Engine (Person 3, hours 2-3)</title>
+      <tasks>
+        - Eligibility Agent: Neo4j traversal queries (diagnosis -> service -> certification ->
+          caregiver), PostgreSQL queries (service area, insurance contract, availability)
+        - Deterministic accept/decline/needs-more-info logic (safety guarantee #3)
+        - POST /eligibility-check endpoint with reasons
+      </tasks>
+    </step>
+    <step number="3">
+      <title>Phase 3 — Document Pipeline (Person 2, hours 2-3)</title>
+      <tasks>
+        - PDF ingestion, preprocessing, LLM page classification
+        - Dual-path extraction (rules for clean PDFs, Gemini vision for messy)
+        - Validation, Correction, and Cross-Reference agents
+        - Completeness check, gap identification, confidence scoring
+        - POST /process-document endpoint returning structured JSON with gaps
+      </tasks>
+    </step>
+    <step number="4">
+      <title>Phase 4 — Voice Agent (Person 1, hours 2-3)</title>
+      <tasks>
+        - Twilio ConversationRelay WebSocket handler; consent gather as literal first node
+        - Provider, family, and outbound conversation modes
+        - Tokenize/rehydrate wrapper and banned-phrase filter (safety guarantees #2, #5)
+        - Real-time extraction from caller speech; mid-call Eligibility Agent integration
+        - Failure handoff path (safety guarantee #6); call transcript capture
+      </tasks>
+    </step>
+    <step number="5">
+      <title>Phase 5 — Orchestrator (Person 4, hours 2-3)</title>
+      <tasks>
+        - LangGraph state machine: referral received -> document processing -> eligibility ->
+          decision -> follow-up
+        - Routing logic between pipeline, eligibility, and voice actions
+        - Follow-up Agent: Twilio SMS, email, retry scheduling, escalation after 3 attempts
+        - Merge logic: document + voice data into one unified intake record
+      </tasks>
+    </step>
+    <step number="6">
+      <title>Phase 6 — Dashboard and Demo (all 4 developers, hours 4-5)</title>
+      <tasks>
+        - Person 3: React dashboard (pipeline view, confidence scores, gap tracker)
+        - Person 4: end-to-end integration wiring and testing
+        - Person 1: live call testing, edge cases, demo script
+        - Person 2: pipeline-to-orchestrator connection, sample PDF tests
+        - All: final 30 minutes — demo rehearsal, scripted scenarios, safety checklist run
+      </tasks>
+    </step>
+    <demo_script>
+      1. Live inbound call from a discharge planner (judge calls the Twilio number, gets a
+         real-time answer on the spot)
+      2. Fax processing: upload a sample referral PDF, watch it move through 7 layers on the
+         dashboard, confidence scores populate, gaps identified
+      3. Outbound follow-up: system automatically calls to collect missing documentation
+      4. Family call: judge calls as a worried family member, gets a compassionate intake
+      5. Dashboard: full pipeline, statuses, extracted data, confidence scores, gap lists,
+         transcripts, caregiver matches
+    </demo_script>
+  </implementation_steps>
+
+  <success_criteria>
+    <compliance_checklist>
+      - Telephony runs through Twilio (voice and/or SMS)
+      - Demoed flow is a full conversation end-to-end ("hello to done"), not a fragment
+      - Guardrails visibly enforced (no medical advice, no premature admission confirmation,
+        escalation on low confidence)
+      - Security posture explainable on demand (PHI handling, encrypted storage, auth)
+      - Scalability story explainable on demand (concurrent calls, modular agents)
+      - Caller personalization demonstrable
+      - Knowledge grounding demonstrable (ICD-10/Neo4j, not free-floating LLM guesses)
+      - Everything shown was built during the sprint (pre-work = data/scaffolding only)
+      - Devpost submission complete: name + one-liner, problem/solution, tools (incl. Twilio
+        usage), team roles, live demo link
+    </compliance_checklist>
+    <safety>
+      - All 6 must-have.md Part 1 guarantees enforced in code and covered by test_safety_layer.py
+      - CI fails if any safety test fails — verified before every demo or test call
+    </safety>
+    <functionality>
+      - Inbound provider call reaches a real-time ACCEPT/DECLINE/NEEDS_MORE_INFO on the call
+      - Mid-call eligibility loop completes in 2-3 seconds (or uses natural filler speech)
+      - Sample referral PDFs process through all 7 layers with correct gap detection
+      - Correction Agent fixes seeded OCR errors (e.g., "M17.1I" -> "M17.11") with right confidence
+      - Outbound follow-up call and SMS confirmations fire automatically on gaps
+      - Family-mode call never promises coverage; always schedules coordinator follow-up
+    </functionality>
+    <judging_alignment>
+      - Reliability: agentic validation-correction loop, confidence scoring, retry logic
+      - Guardrails: no medical advice, no unverified admission promises, human escalation,
+        HIPAA-appropriate boundaries, full audit trail
+      - Security: synthetic data only, tokenized LLM calls, encrypted storage, no PHI in logs
+      - Scalability: modular agents scale independently; parallel fax processing; concurrent
+        calls via Twilio; Redis caching prevents redundant checks
+      - Domain knowledge: real ICD-10 codes, live NPI validation, real Medicare coverage rules,
+        knowledge graph — not an LLM guessing
+      - Caller personalization: mode detection, referral source history, cross-interaction context
+    </judging_alignment>
+  </success_criteria>
+
+  <documentation_references>
+    <!-- This spec is derived from and must stay consistent with the repo docs.
+         Precedence on conflicts: PROJECT.md > must-have.md > docs/ARCHITECTURE.md > WORKFLOW.md. -->
+    - PROJECT.md — source of truth (problem, architecture, data model, build plan, official brief)
+    - must-have.md — safety authority (6 code-enforced guarantees + feature priorities)
+    - docs/ARCHITECTURE.md — Mermaid diagrams, numbered flows, proposed module layout
+    - WORKFLOW.md — plain-English end-to-end walkthrough and situation cheat sheet
+    - data/README.md — reference/synthetic seed data sources and licensing
+    - CLAUDE.md — 4-developer collaboration protocol and file ownership rules
+  </documentation_references>
+</project_specification>
