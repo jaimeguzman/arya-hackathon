@@ -531,7 +531,7 @@
       "Verify the ElevenLabs agent configuration points the Custom LLM endpoint at PUBLIC_BASE_URL so every turn passes through the backend. Expected result: the command/check completes successfully with no blocking errors.",
       "Integration test with a simulated ElevenLabs client completes a turn round-trip. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 41,
@@ -993,7 +993,7 @@
       "Verify inbound ElevenLabs requests validate the HMAC signature header against ELEVENLABS_WEBHOOK_SECRET and reject invalid signatures with 403. Expected result: the command/check completes successfully with no blocking errors.",
       "Test with a forged signature asserts rejection. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 77,
