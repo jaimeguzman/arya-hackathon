@@ -101,18 +101,3 @@ flowchart LR
 | **Redis** | Ephemeral call state, pipeline checkpoints, follow-up schedule |
 
 Full step-by-step diagrams (including safety-gated call flow): [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
-
----
-
-## Safety (demo blockers)
-
-Before every live call, verify the checklist in [`must-have.md`](./must-have.md). In short:
-
-1. Consent / recording disclosure on connect  
-2. PHI handling (tokenize / rehydrate where required)  
-3. Eligibility is **code**, not the model  
-4. Banned-phrase / guardrail filter before TTS  
-5. Failure handoff when the agent cannot proceed safely  
-6. No medical advice, no premature “you're admitted”
-
----
