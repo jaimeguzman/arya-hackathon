@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     neo4j_user: str = ""
     neo4j_password: str = ""
     redis_url: str = ""
+    eligibility_cache_ttl_seconds: int = 300
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
     twilio_phone_number: str = ""

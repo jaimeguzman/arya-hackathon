@@ -76,7 +76,7 @@
       "Verify eligibility cache entries are written with a short TTL. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit test round-trips a value through each key type. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 7,
@@ -127,7 +127,7 @@
       "Verify tests/test_safety_layer.py exists and is wired so the suite fails the build if any safety test fails. Expected result: the command/check completes successfully with no blocking errors.",
       "Run pytest and confirm the suite executes. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 11,
