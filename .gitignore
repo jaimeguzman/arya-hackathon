@@ -1,94 +1,208 @@
 # ===========================================================================
-# Environment & secrets
+# Dependencies
 # ===========================================================================
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-*.p12
-*.pfx
-secrets.*
-credentials.*
 
-# ===========================================================================
-# Node.js / JavaScript / TypeScript
-# ===========================================================================
+# Node.js
 node_modules/
-.npm
-.pnp
-.pnp.*
+.pnp/
+.pnp.js
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-.pnpm-store/
 
-# Build output
-dist/
-build/
-out/
-.output/
-.vercel/
-.netlify/
-*.tsbuildinfo
-
-# Framework caches
-.next/
-.nuxt/
-.svelte-kit/
-.astro/
-.turbo/
-.cache/
-.parcel-cache/
-.eslintcache
-.stylelintcache
-
-# Testing / coverage
-coverage/
-.nyc_output/
-*.lcov
-
-# ===========================================================================
 # Python
-# ===========================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-venv/
-.venv/
-env/
-ENV/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.tox/
-*.egg-info/
+develop-eggs/
+downloads/
+eggs/
 .eggs/
-htmlcov/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
 # ===========================================================================
-# Logs & temporary files
+# Environment & Secrets
 # ===========================================================================
-logs/
-*.log
+
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+.env*.local
+.env.bak
+env.bak/
+!.env.example
+
+# Secrets / keys / certs
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+secrets.*
+credentials.json
+credentials.*
+service-account*.json
+
+# ===========================================================================
+# Build & Output
+# ===========================================================================
+
+build/
+dist/
+out/
+# Next.js
+.next/
+.swc/
+# Python builds
+*.manifest
+*.spec
+# Bundles
+*.bundle.js
+*.bundle.js.map
+
+# ===========================================================================
+# Cache & Temp Files
+# ===========================================================================
+
+# Node / Next.js
+.cache/
+.parcel-cache/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+.playwright-mcp/
+.eslintcache
+.stylelintcache
+
+# Python
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+pytestdebug.log
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.hypothesis/
+.tox/
+.nox/
+
+# Temp / scratch
+.temp
+.temp/
+.temp-*
 tmp/
 temp/
 *.tmp
+*.temp
+
+# ===========================================================================
+# Testing & Coverage
+# ===========================================================================
+
+# JavaScript / TypeScript
+coverage/
+.nyc_output/
+jest-results/
+playwright-report/
+test-results/
+*.lcov
+
+# Python
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+coverage.lcov
+coverage.json
+*.cover
+*.py,cover
+
+# ===========================================================================
+# Logs & runtime artifacts
+# ===========================================================================
+
+logs/
+.logs/
+*.log
+.pids/
 *.pid
 *.seed
+nohup.out
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===========================================================================
+# Virtual Environments
+# ===========================================================================
+
+venv/
+.venv/
+ENV/
+env/
+.python-version
+Pipfile.lock
+poetry.lock
+.pnpm-store/
+
+# ===========================================================================
+# IDE & Editors
+# ===========================================================================
+
+# VSCode
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Cursor / Codex
+.cursor/
+.codex/
+
+# Vim / Emacs / Sublime
+*.swp
+*.swo
+*~
+\#*\#
+*.elc
+*.sublime-workspace
+*.sublime-project
 
 # ===========================================================================
 # OS files
 # ===========================================================================
+
 .DS_Store
 .DS_Store?
 ._*
@@ -99,28 +213,123 @@ Thumbs.db
 desktop.ini
 
 # ===========================================================================
-# Editors & IDEs
+# Documentation build
 # ===========================================================================
-.idea/
-*.iml
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/launch.json
-*.sublime-project
-*.sublime-workspace
-*.swp
-*.swo
-*~
+
+docs/_build/
+site/
+.docusaurus/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb_checkpoints
 
 # ===========================================================================
-# Claude Code (keep shared config, ignore local overrides)
+# Deployment
 # ===========================================================================
+
+.vercel/
+.netlify/
+.amplify/
+
+# PM2 config (VM-specific — use .example as template)
+ecosystem.config.js
+ecosystem.agents.config.js
+!ecosystem.config.example.js
+!ecosystem.agents.config.example.js
+
+# ===========================================================================
+# Database & Storage
+# ===========================================================================
+
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.rdb
+redis-data/
+postgres-data/
+mongo-data/
+neo4j-data/
+
+# SQL: ignore local dumps, but keep migrations & docker init scripts
+*.sql
+!databases/**/*.sql
+!infra/init/**/*.sql
+!infra/**/migrations/**/*.sql
+!apis/**/migrations/**/*.sql
+
+# ===========================================================================
+# Docker
+# ===========================================================================
+
+docker-compose.override.yml
+.docker/
+
+# ===========================================================================
+# Infrastructure as Code
+# ===========================================================================
+
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# ===========================================================================
+# Misc tooling
+# ===========================================================================
+
+storybook-static/
+*.debug
+.sentryclirc
+*.local
+local/
+
+# ===========================================================================
+# Claude Code / AI agent artifacts
+# ===========================================================================
+
+.claude_agent_settings.json
 .claude/settings.local.json
-.claude/*.local.md
+.claude/ralph-loop.local.md
+.claude/scheduled_tasks.lock
+.claude/.cc-writes/
+.claude/commands/me-*.md
+CLAUDE.local.md
+**/CLAUDE.local.md
+
+# MCP configuration (may contain tokens)
+.mcp.json
+**/.mcp.json
+.mcp-*.json
 
 # ===========================================================================
-# Misc
+# Defensive barrier: autonomous-agent temp files
+# Last line of defense if an agent ignores CLAUDE.md rules
 # ===========================================================================
+
 *.bak
-*.orig
+*.new
+*_updated.json
+*_backup.*
+debug-*.*
+verify-*.*
+
+# ===========================================================================
+# Working files, worktrees & scratch directories (JG)
+# ===========================================================================
+
+.worktrees/
+.worktree/
+.references/
+.reference/
+.references
+.reference
+.bicho/
+.jg/
+.prompts/
+.prompts/history/
+.memory/
+.notes/
+.specs/
+.spec
+plan.md

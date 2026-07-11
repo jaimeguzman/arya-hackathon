@@ -1,6 +1,6 @@
 # IntakeAI — Intelligent Patient Intake Agent for Home Health Agencies
 
-> This document is the architecture and product source of truth. [`must-have.md`](must-have.md) is its companion — the non-negotiable safety layer (5 checks, verified before every demo/test call) and the ranked app-level feature list. [`architecture.md`](architecture.md) is the diagram-and-steps reference derived from this document — use it for onboarding and implementation detail, but this file wins if they ever disagree.
+> This document is the architecture and product source of truth. [`must-have.md`](must-have.md) is its companion — the non-negotiable safety layer (6 checks, verified before every demo/test call) and the ranked app-level feature list. [`architecture.md`](architecture.md) is the diagram-and-steps reference derived from this document — use it for onboarding and implementation detail, but this file wins if they ever disagree. [`WORKFLOW.md`](WORKFLOW.md) is the plain-English end-to-end narration of both entry channels (voice + fax).
 
 ## Hackathon
 
@@ -761,10 +761,11 @@ All data prep and architecture decisions — zero application code:
 - .cursorrules with stack decisions, conventions, file structure
 - PHASE_N_SPEC.md for each phase
 - PostgreSQL migration SQL ready
-- Neo4j Cypher seed scripts ready (ICD-10 subset, diagnosis-certification mappings, insurance rules)
-- Sample referral PDFs (3-4 with varying completeness and quality)
-- Caregiver roster data as JSON (20-30 caregivers)
-- Insurance rules data as JSON (4-5 payers, 2-3 plans each)
+- Neo4j Cypher seed scripts ready (ICD-10 subset, diagnosis-certification mappings, insurance rules) — data itself is ready in [`data/reference/`](data/reference/), the SQL/Cypher loader scripts that read it are still open, owned by whoever takes Phase 1 / Person 3
+- ~~Sample referral PDFs (3-4 with varying completeness and quality)~~ — **done**, both as structured JSON ([`data/synthetic/sample_referrals.json`](data/synthetic/sample_referrals.json)) and as rendered fax PDFs ([`data/synthetic/referral_faxes/`](data/synthetic/referral_faxes/) — 3 of the 4 scenarios; the 4th is phone-only by design)
+- ~~Caregiver roster data as JSON (20-30 caregivers)~~ — **done**, see [`data/synthetic/caregiver_roster.json`](data/synthetic/caregiver_roster.json) (25 caregivers)
+- ~~Insurance rules data as JSON (4-5 payers, 2-3 plans each)~~ — **done**, see [`data/reference/payer_coverage_rules.json`](data/reference/payer_coverage_rules.json) (5 payers, 8 plans)
+- **Done**: ICD-10 top-30 home health subset, diagnosis→service→certification mapping, agency service-area/config, and referral-source directory — see [`data/reference/`](data/reference/) and [`data/synthetic/`](data/synthetic/); still need to be loaded into Neo4j Cypher seed scripts / PostgreSQL migration SQL above
 - Twilio account created, phone number provisioned
 - Docker Compose file ready
 
@@ -777,6 +778,8 @@ All data prep and architecture decisions — zero application code:
 
 ### Phase 2: Knowledge & Eligibility Engine (Person 3, Hours 2-3)
 
+> Data ready now: everything in [`data/reference/`](data/reference/) and [`data/synthetic/`](data/synthetic/) — see the quick-start table in [`data/README.md`](data/README.md#-status-done--safe-to-build-against-right-now-in-parallel).
+
 - Eligibility Agent implementation
 - Neo4j traversal queries (diagnosis → service → certification → caregiver matching)
 - PostgreSQL queries (service area, insurance contract, caregiver availability)
@@ -784,6 +787,8 @@ All data prep and architecture decisions — zero application code:
 - API endpoint: `POST /eligibility-check` → returns decision with reasons
 
 ### Phase 3: Document Pipeline (Person 2, Hours 2-3)
+
+> Data ready now: [`data/synthetic/referral_faxes/`](data/synthetic/referral_faxes/) (3 real PDFs to run OCR/extraction against, including a genuinely degraded scan) + [`data/synthetic/sample_referrals.json`](data/synthetic/sample_referrals.json) (ground truth to check extraction accuracy against).
 
 - PDF ingestion and preprocessing
 - Page classification (LLM-based)
@@ -796,6 +801,8 @@ All data prep and architecture decisions — zero application code:
 
 ### Phase 4: Voice Agent (Person 1, Hours 2-3)
 
+> Data ready now: [`data/reference/payer_coverage_rules.json`](data/reference/payer_coverage_rules.json), [`data/reference/agency_configuration.json`](data/reference/agency_configuration.json), [`data/synthetic/referral_source_directory.json`](data/synthetic/referral_source_directory.json) (caller personalization), [`data/synthetic/sample_referrals.json`](data/synthetic/sample_referrals.json) (test scenarios).
+
 - Twilio ConversationRelay WebSocket handler
 - Provider mode conversation flow
 - Family mode conversation flow
@@ -805,6 +812,8 @@ All data prep and architecture decisions — zero application code:
 - Call transcript capture
 
 ### Phase 5: Orchestrator (Person 4, Hours 2-3)
+
+> Data ready now: [`data/synthetic/referral_source_directory.json`](data/synthetic/referral_source_directory.json) + [`data/synthetic/sample_referrals.json`](data/synthetic/sample_referrals.json) — use the 4 sample scenarios to test routing decisions end-to-end before real calls/faxes exist.
 
 - LangGraph state machine defining the full intake workflow
 - State: referral received → document processing → eligibility check → decision → follow-up

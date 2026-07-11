@@ -1,0 +1,1497 @@
+[
+  {
+    "id": 1,
+    "category": "setup",
+    "app": "infra",
+    "description": "Docker Compose stack: PostgreSQL+pgvector, Neo4j, Redis, FastAPI, React dev server",
+    "spec_reference": "technology_stack/infrastructure",
+    "steps": [
+      "Verify infra/docker-compose.yml defines services postgres (with pgvector image), neo4j, redis, api, and web. Expected result: the command/check completes successfully with no blocking errors.",
+      "Run docker compose config to validate the file. Expected result: the command/check completes successfully with no blocking errors.",
+      "Run docker compose up -d for postgres, neo4j, redis and confirm all three report healthy. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify no credentials are hardcoded; all secrets come from environment variables referenced in .env.example. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 2,
+    "category": "setup",
+    "app": "apis",
+    "description": "FastAPI backend skeleton with app factory, settings from env, and /health endpoint",
+    "spec_reference": "api_endpoints_summary/core",
+    "steps": [
+      "Verify apis/ contains a FastAPI app package with pyproject.toml or requirements.txt pinning fastapi, uvicorn, langgraph, redis, psycopg, neo4j. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify settings are loaded from environment variables (pydantic-settings) with no hardcoded URLs or keys. Expected result: the command/check completes successfully with no blocking errors.",
+      "Start the app and GET /health returns 200 with per-dependency status (postgres, neo4j, redis). Expected result: the endpoint returns the documented status code and JSON shape."
+    ],
+    "passes": true
+  },
+  {
+    "id": 3,
+    "category": "setup",
+    "app": "apps",
+    "description": "React intake dashboard scaffold (Vite + TypeScript) with dev/build/lint/type-check scripts",
+    "spec_reference": "ui_layout/dashboard",
+    "steps": [
+      "Verify apps/dashboard/package.json declares scripts dev, build, lint, type-check and engines.node >= 20. Expected result: the command/check completes successfully with no blocking errors.",
+      "Run npm run build in apps/dashboard with zero type errors. Expected result: the command/check completes successfully with no blocking errors.",
+      "Run npm run dev and confirm HTTP 200 on the base route. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": true
+  },
+  {
+    "id": 4,
+    "category": "setup",
+    "app": "infra",
+    "description": "PostgreSQL migration SQL creating all operational tables from the schema",
+    "spec_reference": "database_schema/postgresql",
+    "steps": [
+      "Verify migration files create intake_records, extracted_fields, gap_list, caregivers, service_areas, insurance_contracts, referral_sources, call_records, follow_up_events, audit_trail, icd10_codes, zip_codes, medication_dosage_ranges. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify intake_records has JSONB columns for patient, clinical, insurance and an is_synthetic boolean NOT NULL. Expected result: the command/check completes successfully with no blocking errors.",
+      "Apply migrations against a fresh database and confirm all tables exist. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 5,
+    "category": "setup",
+    "app": "infra",
+    "description": "Neo4j Cypher seed scripts for the 13-node/14-relationship knowledge graph",
+    "spec_reference": "database_schema/neo4j",
+    "steps": [
+      "Verify Cypher seeds create the 13 node types (Patient, Diagnosis, Payer, InsurancePlan, CoverageRule, ServiceType, CertificationType, Caregiver, ServiceArea, Physician, ReferralSource, Medication, Document). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the 14 relationship types are created including REQUIRES, NEEDS_CERTIFICATION, HAS_CERTIFICATION, SERVES_AREA, COVERS. Expected result: the command/check completes successfully with no blocking errors.",
+      "Run the seed script against Neo4j and query counts per label to confirm data loaded from data/reference JSON files. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 6,
+    "category": "setup",
+    "app": "infra",
+    "description": "Redis key conventions and connection module for pipeline/call/eligibility/retry state",
+    "spec_reference": "database_schema/redis",
+    "steps": [
+      "Verify a shared Redis module defines key builders pipeline:{doc_id}, call:{call_sid}, eligibility_cache:{zip}:{payer}:{plan}, retry_queue. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify eligibility cache entries are written with a short TTL. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit test round-trips a value through each key type. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 7,
+    "category": "setup",
+    "app": "infra",
+    "description": ".env.example documenting every required environment variable",
+    "spec_reference": "technology_stack",
+    "steps": [
+      "Verify .env.example lists DATABASE_URL, NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, REDIS_URL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, GEMINI_API_KEY, PUBLIC_BASE_URL (ngrok). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify no real secret values appear in .env.example and no .env file is committed. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 8,
+    "category": "setup",
+    "app": "data",
+    "description": "Reference data present and loadable: ICD-10 subset, diagnosis-service-cert mapping, payer rules",
+    "spec_reference": "data_model/knowledge_reference",
+    "steps": [
+      "Verify data/reference contains icd10_top30_home_health.json, diagnosis_service_certification_mapping.json, payer_coverage_rules.json (5 payers, 8 plans). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a loader parses each file into typed structures without error. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify every diagnosis in the mapping references an ICD-10 code present in the subset. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 9,
+    "category": "setup",
+    "app": "data",
+    "description": "Synthetic seed data: caregiver roster (20-30), referral sources, sample referral PDFs",
+    "spec_reference": "implementation_steps/prework",
+    "steps": [
+      "Verify data/synthetic contains a caregiver roster JSON with 20-30 caregivers including type, certifications with expiry, zips, availability, languages, load, capacity, status. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify 3-4 sample referral PDFs of varying quality exist for pipeline testing. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify every synthetic record is tagged is_synthetic: true when loaded into PostgreSQL. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 10,
+    "category": "setup",
+    "app": "apis",
+    "description": "Backend test harness with pytest and CI-runnable safety suite entry point",
+    "spec_reference": "safety_requirements",
+    "steps": [
+      "Verify pytest is configured and a tests/ package exists in apis/. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify tests/test_safety_layer.py exists and is wired so the suite fails the build if any safety test fails. Expected result: the command/check completes successfully with no blocking errors.",
+      "Run pytest and confirm the suite executes. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 11,
+    "category": "functional",
+    "app": "apis",
+    "description": "Safety guarantee 1: fake data only \u2014 is_synthetic enforced on every DB write",
+    "spec_reference": "safety_requirements/guarantee 1",
+    "steps": [
+      "Verify the DB write layer hard-asserts is_synthetic is true and raises on any record missing or false. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the app refuses to boot unless DATABASE_URL matches an allowlisted demo database name. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test in test_safety_layer.py: writing a non-synthetic record raises; booting against a non-allowlisted DB name aborts. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 12,
+    "category": "functional",
+    "app": "apis",
+    "description": "Safety guarantee 2: tokenize -> LLM -> rehydrate wrapper; single LLM entry point",
+    "spec_reference": "safety_requirements/guarantee 2",
+    "steps": [
+      "Verify exactly one function in the codebase calls the Gemini API and all agents route through it. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify identifiers (name, DOB, phone, address, member ID) are replaced with placeholders like {{PATIENT_NAME}} before the payload is built. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the wrapper regex-scans its outgoing payload for identifier patterns (phone formats, DOB dates, member ID formats) and refuses to send on match. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify rehydration replaces placeholders only inside the backend after the LLM responds. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a grep/static check confirms no other module imports the LLM SDK directly. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify token maps are stored per-request in backend memory or Redis, never sent to the LLM. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify DOB, address, and member ID patterns are each covered by the outgoing regex scan. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the wrapper logs a redacted audit event when it blocks a payload. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify vision-path document images are handled per the same policy (identifier fields tokenized in accompanying text prompts). Expected result: the command/check completes successfully with no blocking errors.",
+      "Test in test_safety_layer.py: payload containing a raw phone number is rejected; tokenized round-trip restores original values. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 13,
+    "category": "functional",
+    "app": "apis",
+    "description": "Safety guarantee 3: check_eligibility() is deterministic code, never LLM-decided",
+    "spec_reference": "safety_requirements/guarantee 3",
+    "steps": [
+      "Verify check_eligibility() contains no LLM calls and evaluates zip match, insurance acceptance, and caregiver availability from tables/graph only. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the response-generation function requires a pre-computed EligibilityResult object as a mandatory input parameter. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test in test_safety_layer.py: clear-yes case returns ACCEPT, clear-no returns DECLINE, ambiguous returns NEEDS_MORE_INFO. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 14,
+    "category": "functional",
+    "app": "apis",
+    "description": "Safety guarantee 4: consent gather is the first node of every call flow",
+    "spec_reference": "safety_requirements/guarantee 4",
+    "steps": [
+      "Verify the consent node is the only node wired to the incoming-call trigger in the call flow graph. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify every data-collection function reads consent_given from the persisted call record and refuses to run when false. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a 'no' answer routes to human transfer or graceful end with zero data collection. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test in test_safety_layer.py: data collection without consent raises; consent 'no' produces the handoff path. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 15,
+    "category": "functional",
+    "app": "apis",
+    "description": "Safety guarantee 5: banned-phrase filter via SafeResponse type before TTS",
+    "spec_reference": "safety_requirements/guarantee 5",
+    "steps": [
+      "Verify speak()/TTS output only accepts a SafeResponse typed object that filters banned phrases ('guarantee', 'promise', 'definitely will', '100%', 'for sure', 'confirmed appointment at') on construction. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify there is no code path that sends text to TTS without constructing SafeResponse. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test in test_safety_layer.py: an over-promising draft never reaches output verbatim. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 16,
+    "category": "functional",
+    "app": "apis",
+    "description": "Safety guarantee 6: no silent call drop \u2014 every failure degrades to human handoff",
+    "spec_reference": "safety_requirements/guarantee 6",
+    "steps": [
+      "Verify every call turn is wrapped in a try/except boundary routing exceptions, timeouts, and clarification_attempts threshold breaches to the handoff path. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the handoff path speaks a fallback message and logs the handoff (transfer or scheduled callback). Expected result: the command/check completes successfully with no blocking errors.",
+      "Test in test_safety_layer.py: force-raise mid-turn asserts a spoken response plus a logged handoff. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 17,
+    "category": "functional",
+    "app": "apis",
+    "description": "CI safety suite test_safety_layer.py covers all 6 guarantees and gates the build",
+    "spec_reference": "success_criteria/safety",
+    "steps": [
+      "Verify test_safety_layer.py contains at least one assertion per guarantee (1-6). Expected result: the command/check completes successfully with no blocking errors.",
+      "Run the suite and confirm all safety tests pass. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a CI script or make target runs the safety suite and exits non-zero on failure. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 18,
+    "category": "agent",
+    "app": "apis",
+    "description": "EligibilityResult model: ACCEPT / DECLINE / NEEDS_MORE_INFO with reasons list",
+    "spec_reference": "agent_architecture/eligibility_agent",
+    "steps": [
+      "Verify a typed EligibilityResult carries exactly one status of ACCEPT, DECLINE, NEEDS_MORE_INFO plus structured reasons. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit test constructs each status and serializes to JSON. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 19,
+    "category": "agent",
+    "app": "apis",
+    "description": "Service area check against agency zip list",
+    "spec_reference": "core_features/eligibility_engine",
+    "steps": [
+      "Verify a served zip returns pass and an unserved zip returns a hard fail with reason 'zip not served'. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify missing zip yields NEEDS_MORE_INFO, not DECLINE. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests cover served, unserved, and missing zip. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 20,
+    "category": "agent",
+    "app": "apis",
+    "description": "Insurance check against payer/plan contracts",
+    "spec_reference": "core_features/eligibility_engine",
+    "steps": [
+      "Verify accepted payer+plan passes; unaccepted payer hard-fails with reason. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify unknown or fuzzy plan names route through pgvector/pg_trgm fuzzy match before failing. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify missing insurance info yields NEEDS_MORE_INFO. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests cover accepted, rejected, fuzzy-matched, and missing cases. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 21,
+    "category": "agent",
+    "app": "apis",
+    "description": "Clinical matching: diagnosis -> service type -> certification via Neo4j traversal",
+    "spec_reference": "database_schema/neo4j",
+    "steps": [
+      "Verify the Cypher traversal Diagnosis-REQUIRES->ServiceType-NEEDS_CERTIFICATION->CertType<-HAS_CERTIFICATION-Caregiver-SERVES_AREA->ServiceArea returns matching caregivers. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify expired certifications are excluded via the HAS_CERTIFICATION expiry property. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit test with seeded graph: known diagnosis+zip returns the expected caregiver set. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 22,
+    "category": "agent",
+    "app": "apis",
+    "description": "Caregiver availability filter: capacity, status, schedule",
+    "spec_reference": "data_model/caregiver_roster",
+    "steps": [
+      "Verify caregivers at max capacity or with status other than active are excluded from matches. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests cover at-capacity, on-leave, and available caregivers. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 23,
+    "category": "agent",
+    "app": "apis",
+    "description": "Coverage rules: insurance plan COVERS service type, prior auth requirements",
+    "spec_reference": "core_features/eligibility_engine",
+    "steps": [
+      "Verify InsurancePlan-COVERS->ServiceType is cross-checked and uncovered services fail with reason. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify REQUIRES_AUTH surfaces 'prior authorization required' in the result's documentation needs. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests cover covered, uncovered, and auth-required plans using payer_coverage_rules.json. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 24,
+    "category": "agent",
+    "app": "apis",
+    "description": "Decision engine bias: DECLINE only on black-and-white facts, else NEEDS_MORE_INFO",
+    "spec_reference": "workflows/decision_engine",
+    "steps": [
+      "Verify DECLINE fires only when zip or insurance fails unambiguously. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify any ambiguity (no caregiver match, missing fields, fuzzy insurance) yields NEEDS_MORE_INFO with specific missing items. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests assert an ambiguous case never returns DECLINE. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 25,
+    "category": "agent",
+    "app": "apis",
+    "description": "Eligibility result caching in Redis keyed by zip:payer:plan with short TTL",
+    "spec_reference": "database_schema/redis",
+    "steps": [
+      "Verify a repeated check hits the cache (no second Neo4j query) within the TTL. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify cache expiry triggers a fresh traversal. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit test with fake Redis asserts cache hit and miss behavior. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 26,
+    "category": "agent",
+    "app": "apis",
+    "description": "Only the Eligibility Agent writes eligibility/acceptance decisions",
+    "spec_reference": "agent_architecture/data_access_rules",
+    "steps": [
+      "Verify the intake status transitions to eligible/accepted/declined only through the Eligibility Agent's write path. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit test: attempts to set an acceptance status from voice or pipeline modules are rejected. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 27,
+    "category": "agent",
+    "app": "apis",
+    "description": "Eligibility check performance suitable for mid-call loop (2-3 seconds)",
+    "spec_reference": "agent_architecture/voice_agent",
+    "steps": [
+      "Measure check_eligibility() end-to-end against local databases and confirm it completes within 3 seconds. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the voice layer emits filler speech when the loop exceeds the threshold. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 28,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 1 \u2014 Ingestion and preprocessing: PDF/TIFF standardization and page cleanup",
+    "spec_reference": "document_pipeline/layer 1",
+    "steps": [
+      "Verify uploads of PDF and TIFF are standardized to per-page images/text with deskew/denoise/contrast steps applied. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify each page is tagged scanned-image vs digital-text. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit test with a sample PDF asserts page count and per-page type detection. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 29,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 2 \u2014 Page classification into document types",
+    "spec_reference": "document_pipeline/layer 2",
+    "steps": [
+      "Verify each page is classified as one of: physician order, face-to-face note, discharge summary, medication list, insurance card, lab results, consent form, fax cover sheet. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify fax cover sheets are marked junk and excluded from extraction. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test with a sample packet asserts expected classifications per page. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 30,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 3 Path B \u2014 rule-based extraction for digital-text PDFs (Docling + regex)",
+    "spec_reference": "document_pipeline/layer 3",
+    "steps": [
+      "Verify Docling parses text layers and regex/keyword rules extract patient name (after 'Patient:'/'Name:'), ICD codes (letter+digits), member IDs by payer format, NPI (10 digits). Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests feed known text snippets and assert extracted fields. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 31,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 3 Path C \u2014 Gemini vision extraction for image pages",
+    "spec_reference": "document_pipeline/layer 3",
+    "steps": [
+      "Verify image pages route to the Gemini Flash vision extractor through the single tokenizing LLM wrapper. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify extraction returns fields with per-field values from the image. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test with a scanned sample page asserts non-empty structured output (mockable in CI). Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 32,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 4 \u2014 Both paths converge into standardized raw JSON per page",
+    "spec_reference": "document_pipeline/layer 4",
+    "steps": [
+      "Verify rules-path and vision-path outputs normalize to the same schema including extraction_path (rules/vision) per field. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit test asserts schema equality of both paths' outputs. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 33,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 5 \u2014 Validation Agent: ICD-10, NPI Luhn+NPPES, member ID format, dates, zip, dosage ranges",
+    "spec_reference": "document_pipeline/layer 5",
+    "steps": [
+      "Verify ICD-10 codes are validated against the reference table. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify NPI passes Luhn check and (when online) NPPES registry lookup. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify member ID matches the payer-specific format, DOB is reasonable, discharge date is after admission date, zip exists. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify medication dosage is checked against medication_dosage_ranges (e.g. Metformin 50000mg flagged as OCR error). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an invalid ICD-10 code produces a validation failure record naming the field and rule. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an NPI failing the Luhn check is flagged even when NPPES is unreachable. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify DOB in the future or older than 120 years is rejected as unreasonable. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify discharge date earlier than admission date is flagged. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a nonexistent zip code is flagged against the zip_codes reference table. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests cover a passing record and one failure per validator. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 34,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 5 \u2014 Correction Agent: reasons about validation failures with confidence tiers",
+    "spec_reference": "document_pipeline/layer 5",
+    "steps": [
+      "Verify 'M17.1I' is auto-corrected to 'M17.11' with high confidence. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a medium-confidence correction (e.g. 'H12O456789' O->0) is applied but flagged for review. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an uncorrectable value (e.g. 'Lisinopril 200mg') is flagged for human review and added to the gap list for voice verification. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests assert all three confidence outcomes. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 35,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 5 \u2014 Cross-Reference Agent: consistency across pages",
+    "spec_reference": "document_pipeline/layer 5",
+    "steps": [
+      "Verify mismatched patient name/DOB across documents is flagged. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify diagnosis text vs ICD code mismatch is flagged. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify medication-diagnosis inconsistency (Warfarin without anticoagulation indication) is flagged for clinical review. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests cover each cross-reference rule. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 36,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 6 \u2014 Completeness check against the requirements checklist with gap generation",
+    "spec_reference": "document_pipeline/layer 6",
+    "steps": [
+      "Verify the checklist covers demographics, signed physician orders, face-to-face documentation, insurance info, diagnosis+ICD, homebound status, medication list. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify each missing item becomes a specific gap_list row with a follow-up task for the Voice Agent. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test with an incomplete packet asserts the expected gaps. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 37,
+    "category": "agent",
+    "app": "apis",
+    "description": "Layer 7 \u2014 Confidence scoring and routing (HIGH/MEDIUM/LOW)",
+    "spec_reference": "document_pipeline/layer 7",
+    "steps": [
+      "Verify HIGH (rules+validated+cross-confirmed) auto-populates the intake record. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify MEDIUM (vision+validated, single doc) auto-populates and flags for review. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify LOW (failed validation/uncertain correction) is withheld and added to the gap list. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests assert routing per tier. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 38,
+    "category": "agent",
+    "app": "apis",
+    "description": "Pipeline state tracked in Redis per document across layers",
+    "spec_reference": "database_schema/redis",
+    "steps": [
+      "Verify pipeline:{doc_id} records current layer, extracted-so-far, and validation status as the document progresses. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts state transitions through all 7 layers. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 39,
+    "category": "functional",
+    "app": "apis",
+    "description": "End-to-end pipeline run on sample referral PDFs with seeded OCR errors",
+    "spec_reference": "success_criteria/functionality",
+    "steps": [
+      "Run POST /process-document with each sample PDF from data/synthetic. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify all 7 layers execute and structured JSON with confidence scores and gap list is returned. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify the seeded OCR error (e.g. 'M17.1I') is corrected with the right confidence. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify extracted fields land in extracted_fields with source document and page traceability. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an intake_records row is created with status reflecting completeness. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 40,
+    "category": "agent",
+    "app": "apis",
+    "description": "Twilio ConversationRelay WebSocket handler at /twilio/conversation-relay",
+    "spec_reference": "technology_stack/telephony",
+    "steps": [
+      "Verify the WebSocket endpoint accepts ConversationRelay setup, prompt, and interrupt message types. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify TwiML/voice webhook configuration connects the Twilio number to the WebSocket URL (PUBLIC_BASE_URL). Expected result: the command/check completes successfully with no blocking errors.",
+      "Integration test with a simulated ConversationRelay client completes a message round-trip. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 41,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Consent gather node: AI + recording disclosure, yes/no branch, persisted flag",
+    "spec_reference": "workflows/flow Discharge planner calls",
+    "steps": [
+      "Verify the first spoken message discloses AI handling and recording and asks for consent. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify 'yes' persists consent_given=true on the call record before any data question. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify 'no' routes to transfer/graceful end with zero data collection. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test both branches via the simulated call harness. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 42,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Caller type detection routing to Provider / Family / Patient modes (WORKFLOW Path A Step 3)",
+    "spec_reference": "core_features/inbound_call_handling",
+    "steps": [
+      "Verify detection runs only after consent_given=true, so no classification or data collection precedes consent. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify early-turn classification assigns provider, family, or patient mode from caller statements. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the mode selects the corresponding static system prompt (Layer 1 control) and is persisted as call.mode in Redis. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a caller who self-identifies ('I'm the discharge planner', 'I'm his daughter', 'I need care for myself') maps to the correct mode. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify inbound is never routed to Outbound mode \u2014 Outbound is reserved for agency-initiated calls carrying a mission parameter. Expected result: the command/check completes successfully with no blocking errors.",
+      "Tests assert each mode is selected from representative utterances for provider, family, and patient. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 43,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Caller type detection: ambiguous or low-confidence classification handling (WORKFLOW Path A Step 3)",
+    "spec_reference": "core_features/inbound_call_handling",
+    "steps": [
+      "Verify an ambiguous opening (caller type unclear) triggers one neutral clarifying question rather than guessing a mode. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify classification confidence is recorded on the call record and low confidence keeps the safe default mode. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the default mode when still unresolved is the most cautious (Family/plain-language, never-promise) profile. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify repeated failure to resolve caller type increments clarification_attempts and can reach the human handoff path (guarantee 6). Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts an ambiguous utterance yields a clarifying question and the cautious default, not a random mode. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 44,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Mid-call mode switch when caller type becomes clearer (WORKFLOW Path A Step 3)",
+    "spec_reference": "core_features/inbound_call_handling",
+    "steps": [
+      "Verify a later turn revealing the true caller type re-assigns call.mode and swaps to the corresponding system prompt. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a mode switch preserves already-collected structured fields in call state (no data loss on switch). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify each mode transition is logged with old_mode, new_mode, and the triggering turn for dashboard visibility. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a switch never bypasses the 4 safety gates on subsequent turns. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts a family->provider switch mid-call keeps prior fields and applies the new prompt. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 45,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Provider mode: clinical, structured intake with real-time eligibility mid-call",
+    "spec_reference": "agent_architecture/voice_agent",
+    "steps": [
+      "Verify provider mode collects name, DOB, diagnosis, insurance, zip in a structured flow. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify extracted data flows to the orchestrator -> Eligibility Agent mid-call and the result shapes the next utterance (Layer 2 dynamic control). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an ACCEPT with missing F2F note produces the specific document ask. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a DECLINE result is communicated honestly and immediately during the call. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a NEEDS_MORE_INFO result asks for the specific missing fields. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the eligibility loop uses only tokenized structured fields (zip, payer, service type). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify every provider-mode utterance passed the banned-phrase filter before TTS. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify collected fields accumulate in the call state across turns. Expected result: the command/check completes successfully with no blocking errors.",
+      "Simulated call test reaches a real-time ACCEPT/DECLINE/NEEDS_MORE_INFO before hangup. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 46,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Family mode: compassionate plain language, never promises coverage",
+    "spec_reference": "core_features/inbound_call_handling",
+    "steps": [
+      "Verify family-mode prompt uses plain language, no jargon, and captures partial information gracefully. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify responses never promise coverage or availability (banned-phrase filter plus prompt constraints) and always schedule a coordinator follow-up. Expected result: the command/check completes successfully with no blocking errors.",
+      "Simulated midnight family call ends with intake status NEW, human flag by 9 AM, and SMS confirmation queued. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 47,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Patient mode: slower pace, explains physician order requirement",
+    "spec_reference": "core_features/inbound_call_handling",
+    "steps": [
+      "Verify patient mode explains the physician order requirement for skilled care and offers to coordinate with their doctor. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify contact info is captured for follow-up. Expected result: the command/check completes successfully with no blocking errors.",
+      "Simulated self-referral call test asserts the explanation and captured contact. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 48,
+    "category": "agent",
+    "app": "ai-agents",
+    "description": "Outbound mode: single-mission calls (collect document, verify detail, schedule visit)",
+    "spec_reference": "agent_architecture/voice_agent",
+    "steps": [
+      "Verify outbound calls carry exactly one mission parameter and open with the same consent gather. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify outbound calls pass through the identical safety-gated flow (tokenize, filter, handoff). Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts an outbound document-request call collects the answer and updates the gap. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 49,
+    "category": "agent",
+    "app": "apis",
+    "description": "Real-time structured extraction from caller speech into the call state",
+    "spec_reference": "agent_architecture/safety_gated_call_flow",
+    "steps": [
+      "Verify each caller turn updates call:{call_sid} in Redis with collected fields and remaining questions. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify only structured, tokenized fields (zip, payer, service type) are sent to eligibility \u2014 never names. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts incremental field accumulation across turns. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 50,
+    "category": "agent",
+    "app": "apis",
+    "description": "4-gate safety flow on every conversation turn",
+    "spec_reference": "agent_architecture/safety_gated_call_flow",
+    "steps": [
+      "Verify the turn pipeline order: extract -> tokenize -> deterministic eligibility (parallel) -> LLM draft -> rehydrate -> banned-phrase filter -> TTS. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify no code path skips a gate. Expected result: the command/check completes successfully with no blocking errors.",
+      "Integration test traces one turn and asserts all gates executed in order. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 51,
+    "category": "agent",
+    "app": "apis",
+    "description": "Filler speech when the eligibility loop exceeds 2-3 seconds",
+    "spec_reference": "agent_architecture/voice_agent",
+    "steps": [
+      "Verify a timer emits natural filler speech ('Let me check our availability for that area... one moment') when the loop is slow. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test with an artificially delayed eligibility call asserts filler is spoken. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 52,
+    "category": "agent",
+    "app": "apis",
+    "description": "Clarification attempts counter with threshold-triggered human handoff",
+    "spec_reference": "safety_requirements/guarantee 6",
+    "steps": [
+      "Verify clarification_attempts increments in call state on misunderstood turns. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify crossing the threshold routes to the handoff path with spoken fallback. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts the handoff after N failed clarifications. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 53,
+    "category": "functional",
+    "app": "apis",
+    "description": "Call transcript capture and consent flag persisted per call",
+    "spec_reference": "database_schema/postgresql",
+    "steps": [
+      "Verify call_records stores call_sid, mode, consent_given, full transcript, timestamps. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the transcript is retrievable via GET /intakes/:id/transcript. Expected result: the endpoint returns the documented status code and JSON shape."
+    ],
+    "passes": false
+  },
+  {
+    "id": 54,
+    "category": "agent",
+    "app": "apis",
+    "description": "LangGraph orchestrator state machine: received -> processed -> decided lifecycle",
+    "spec_reference": "agent_architecture/core_principle",
+    "steps": [
+      "Verify a LangGraph graph models referral received -> document processing -> eligibility -> decision -> follow-up. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the orchestrator never calls Twilio, never parses documents, and never queries databases directly \u2014 only routes to sub-agents. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit test drives a referral through the full state sequence. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 55,
+    "category": "agent",
+    "app": "apis",
+    "description": "Orchestrator routing between pipeline, eligibility, and voice actions",
+    "spec_reference": "implementation_steps/step 5",
+    "steps": [
+      "Verify a completed document run routes extracted data to the Eligibility Agent. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify NEEDS_MORE_INFO results trigger follow-up tasks (outbound call/SMS) for each gap. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts routing decisions per eligibility outcome. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 56,
+    "category": "agent",
+    "app": "apis",
+    "description": "Merge logic: document + voice data into one unified intake record",
+    "spec_reference": "implementation_steps/step 5",
+    "steps": [
+      "Verify fields from a fax and a subsequent call about the same patient merge into one intake record without duplicates. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify higher-confidence values win on conflict and conflicts are flagged. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit test merges overlapping document and voice data and asserts the resolved record. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 57,
+    "category": "functional",
+    "app": "apis",
+    "description": "Intake record status lifecycle with timestamps for every event",
+    "spec_reference": "data_model/pipeline_operational",
+    "steps": [
+      "Verify statuses new, processing, pending_documents, eligible, accepted, declined transition correctly with validation of legal transitions. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify timestamps recorded for received, extraction complete, eligibility checked, first call made, patient admitted. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests cover a legal path and an illegal transition rejection. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 58,
+    "category": "functional",
+    "app": "apis",
+    "description": "Audit trail: every decision logged with the data that informed it",
+    "spec_reference": "core_features/guardrails_compliance",
+    "steps": [
+      "Verify every eligibility decision writes an audit_trail row containing inputs (zip, payer, diagnosis, caregiver matches) and the outcome. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify no PHI appears in application logs (tokenized values only). Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts an audit row per decision and log scan finds no identifier patterns. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 59,
+    "category": "functional",
+    "app": "apis",
+    "description": "ACID protection against double-accepting a patient",
+    "spec_reference": "technology_stack/databases",
+    "steps": [
+      "Verify accepting an intake uses a transaction/row lock so two concurrent accepts cannot both succeed. Expected result: the command/check completes successfully with no blocking errors.",
+      "Concurrency test fires two simultaneous accepts and asserts exactly one wins. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 60,
+    "category": "agent",
+    "app": "services",
+    "description": "Follow-up Agent: SMS confirmations via Twilio Programmable SMS",
+    "spec_reference": "core_features/outbound_follow_up",
+    "steps": [
+      "Verify POST /follow-up/sms sends a confirmation SMS with referral ID through Twilio (mockable client). Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify the send is logged in follow_up_events with result. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 61,
+    "category": "agent",
+    "app": "services",
+    "description": "Document request links via SMS/email",
+    "spec_reference": "core_features/outbound_follow_up",
+    "steps": [
+      "Verify gap follow-ups can include a document upload link in SMS/email. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the link resolves to the upload endpoint feeding the document pipeline. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 62,
+    "category": "agent",
+    "app": "services",
+    "description": "Retry logic: voicemail -> 2h retry, silent SMS -> next morning, 3 failures -> human escalation",
+    "spec_reference": "core_features/outbound_follow_up",
+    "steps": [
+      "Verify a voicemail result schedules a retry in 2 hours via the Redis retry_queue. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an unanswered SMS schedules a next-morning follow-up. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the third failed contact attempt escalates to a human coordinator and stops automated retries. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests cover each retry rule and the escalation cutoff. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 63,
+    "category": "agent",
+    "app": "services",
+    "description": "Outbound call trigger re-enters the safety-gated flow",
+    "spec_reference": "core_features/outbound_follow_up",
+    "steps": [
+      "Verify POST /follow-up/outbound-call initiates a Twilio outbound call whose flow starts at the consent node. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify there is no separate unguarded outbound path in the codebase. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 64,
+    "category": "agent",
+    "app": "services",
+    "description": "Callback scheduling with POST /follow-up/schedule",
+    "spec_reference": "api_endpoints_summary/follow_up",
+    "steps": [
+      "Verify scheduling persists to follow_up_events and enqueues in retry_queue with the target time. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify the scheduler worker picks up due items and executes the action. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 65,
+    "category": "agent",
+    "app": "services",
+    "description": "Scheduler worker service processing the Redis retry queue",
+    "spec_reference": "repository_structure",
+    "steps": [
+      "Verify a services/ worker polls retry_queue and dispatches due follow-ups (call, SMS, escalation). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify Twilio rate limits are respected via the Redis rate-limit keys. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test with a fake clock asserts due items are dispatched exactly once. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 66,
+    "category": "api",
+    "app": "apis",
+    "description": "GET /health with per-dependency status",
+    "spec_reference": "api_endpoints_summary/core",
+    "steps": [
+      "GET /health returns 200 with status for postgres, neo4j, redis. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify a downed dependency is reported degraded without crashing the endpoint. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 67,
+    "category": "api",
+    "app": "apis",
+    "description": "POST /eligibility-check returns status with reasons",
+    "spec_reference": "api_endpoints_summary/core",
+    "steps": [
+      "POST with zip/payer/plan/diagnosis returns ACCEPT, DECLINE, or NEEDS_MORE_INFO plus reasons and documentation needs. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify request validation rejects malformed payloads with 422. Expected result: the command/check completes successfully with no blocking errors.",
+      "Integration tests cover each of the three outcomes. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 68,
+    "category": "api",
+    "app": "apis",
+    "description": "POST /process-document runs the 7-layer pipeline",
+    "spec_reference": "api_endpoints_summary/core",
+    "steps": [
+      "POST a PDF and receive structured JSON with extracted fields, confidence scores, and gap list. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify processing is tracked in Redis and results persisted to PostgreSQL. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 69,
+    "category": "api",
+    "app": "apis",
+    "description": "GET /intakes lists referrals with status for the dashboard",
+    "spec_reference": "api_endpoints_summary/intake",
+    "steps": [
+      "GET /intakes returns all referrals with status, timestamps, and urgency. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify filtering by status works. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 70,
+    "category": "api",
+    "app": "apis",
+    "description": "GET /intakes/:id returns the full intake record",
+    "spec_reference": "api_endpoints_summary/intake",
+    "steps": [
+      "Response includes extracted fields with confidence, gaps, transcript references, and referral source. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify 404 for unknown id. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 71,
+    "category": "api",
+    "app": "apis",
+    "description": "GET /intakes/:id/gaps returns the gap list with follow-up status",
+    "spec_reference": "api_endpoints_summary/intake",
+    "steps": [
+      "Response lists each missing item, actions taken, attempts, and current status. Expected result: the endpoint returns the documented status code and JSON shape."
+    ],
+    "passes": false
+  },
+  {
+    "id": 72,
+    "category": "api",
+    "app": "apis",
+    "description": "GET /intakes/:id/transcript returns call transcripts",
+    "spec_reference": "api_endpoints_summary/intake",
+    "steps": [
+      "Response includes per-call transcript, mode, and consent status. Expected result: the endpoint returns the documented status code and JSON shape."
+    ],
+    "passes": false
+  },
+  {
+    "id": 73,
+    "category": "api",
+    "app": "apis",
+    "description": "GET /analytics/referral-sources: volume, acceptance rate, response times",
+    "spec_reference": "api_endpoints_summary/dashboard_support",
+    "steps": [
+      "Response aggregates referral count, acceptance rate, and average response time per source. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Integration test with seeded data asserts the computed metrics. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 74,
+    "category": "api",
+    "app": "apis",
+    "description": "GET /analytics/time-to-decision speed metrics",
+    "spec_reference": "api_endpoints_summary/dashboard_support",
+    "steps": [
+      "Response returns time-to-decision distribution/averages computed from event timestamps. Expected result: the endpoint returns the documented status code and JSON shape."
+    ],
+    "passes": false
+  },
+  {
+    "id": 75,
+    "category": "api",
+    "app": "apis",
+    "description": "GET /caregivers/matches/:intake_id with selection/rejection reasons",
+    "spec_reference": "api_endpoints_summary/dashboard_support",
+    "steps": [
+      "Response lists considered caregivers and why each was selected or ruled out (cert, area, capacity, expiry). Expected result: the endpoint returns the documented status code and JSON shape."
+    ],
+    "passes": false
+  },
+  {
+    "id": 76,
+    "category": "api",
+    "app": "apis",
+    "description": "Twilio webhook signature validation on inbound HTTP webhooks",
+    "spec_reference": "success_criteria/judging_alignment security",
+    "steps": [
+      "Verify inbound Twilio webhooks validate the X-Twilio-Signature header and reject invalid signatures with 403. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test with a forged signature asserts rejection. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 77,
+    "category": "api",
+    "app": "apis",
+    "description": "Consistent error envelope and no-PHI error messages across the API",
+    "spec_reference": "core_features/guardrails_compliance",
+    "steps": [
+      "Verify errors return a consistent JSON envelope without stack traces or identifiers. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts a triggered error contains no patient identifiers. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 78,
+    "category": "functional",
+    "app": "apis",
+    "description": "Returning caller recognition from referral source phone number",
+    "spec_reference": "core_features/caller_personalization",
+    "steps": [
+      "Verify an inbound call from a known referral-source number loads their history before the greeting. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the greeting acknowledges the caller ('Hi Sarah, calling from Mount Sinai?') using tokenized-safe rendering. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test with a seeded referral source asserts the personalized greeting path. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 79,
+    "category": "functional",
+    "app": "apis",
+    "description": "Referral source history: count, acceptance rate, preferred communication method",
+    "spec_reference": "core_features/caller_personalization",
+    "steps": [
+      "Verify referral_sources stores and updates history per interaction. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the Voice Agent receives history as context for returning callers. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 80,
+    "category": "functional",
+    "app": "apis",
+    "description": "Cross-interaction context: prior family call informs today's follow-up",
+    "spec_reference": "core_features/caller_personalization",
+    "steps": [
+      "Verify a follow-up call about an existing intake loads the prior transcript summary and collected fields. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test: create an intake via a simulated family call, then start a follow-up and assert the context is present. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 81,
+    "category": "functional",
+    "app": "ai-agents",
+    "description": "Clinical guardrail: never gives medical advice",
+    "spec_reference": "core_features/guardrails_compliance",
+    "steps": [
+      "Verify prompts instruct refusal of medical advice with redirection to the physician/coordinator. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test: a medical-advice question in a simulated call yields a refusal + redirect, never advice. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 82,
+    "category": "functional",
+    "app": "ai-agents",
+    "description": "Operational guardrail: no admission promise before eligibility confirms; human named as final confirmer",
+    "spec_reference": "core_features/guardrails_compliance",
+    "steps": [
+      "Verify accept-style language is only generated when an EligibilityResult of ACCEPT is present. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify responses name a human coordinator as the final confirmer. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts a pre-eligibility turn contains no admission confirmation. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 83,
+    "category": "functional",
+    "app": "ai-agents",
+    "description": "Escalation on low confidence or complexity",
+    "spec_reference": "core_features/guardrails_compliance",
+    "steps": [
+      "Verify low-confidence extractions and complex scenarios flag the intake for the human needs-review queue. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts a LOW-confidence field produces a review flag. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 84,
+    "category": "functional",
+    "app": "apis",
+    "description": "Field-level traceability: every extracted field maps to source document and page",
+    "spec_reference": "core_features/guardrails_compliance",
+    "steps": [
+      "Verify extracted_fields rows carry source document id, page number, and extraction path. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test asserts traceability for every field extracted from a sample PDF. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 85,
+    "category": "ui",
+    "app": "apps",
+    "description": "Pipeline board: referrals by status with timestamps and urgency badges",
+    "spec_reference": "ui_layout/dashboard",
+    "steps": [
+      "Verify columns/sections for new, processing, pending documents, eligible, accepted, declined. Expected result: the UI renders the described element without console errors.",
+      "Verify each card shows patient reference, timestamps, and an urgency badge. Expected result: the UI renders the described element without console errors.",
+      "Component test renders seeded intakes into the correct columns. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 86,
+    "category": "ui",
+    "app": "apps",
+    "description": "Referral detail view with confidence color coding (green/yellow/red)",
+    "spec_reference": "ui_layout/dashboard",
+    "steps": [
+      "Verify extracted fields render with green (high), yellow (medium), red (low) confidence indicators. Expected result: the UI renders the described element without console errors.",
+      "Verify each field shows source document and page traceability. Expected result: the UI renders the described element without console errors.",
+      "Component test asserts color mapping per confidence tier. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 87,
+    "category": "ui",
+    "app": "apps",
+    "description": "Gap list panel with per-gap action history",
+    "spec_reference": "ui_layout/dashboard",
+    "steps": [
+      "Verify each gap shows the missing item, actions taken (SMS sent, call attempted), attempts, and status. Expected result: the UI renders the described element without console errors.",
+      "Component test renders a gap with two actions and asserts the history order. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 88,
+    "category": "ui",
+    "app": "apps",
+    "description": "Transcript panel: full transcripts, consent status, caller mode",
+    "spec_reference": "ui_layout/dashboard",
+    "steps": [
+      "Verify transcripts render per call with consent status badge and mode label (provider/family/patient/outbound). Expected result: the UI renders the described element without console errors.",
+      "Component test asserts consent and mode display. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 89,
+    "category": "ui",
+    "app": "apps",
+    "description": "Caregiver match panel with selection/rejection reasons",
+    "spec_reference": "ui_layout/dashboard",
+    "steps": [
+      "Verify considered caregivers list shows why each was selected or ruled out. Expected result: the UI renders the described element without console errors.",
+      "Component test renders match data from GET /caregivers/matches/:intake_id. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 90,
+    "category": "ui",
+    "app": "apps",
+    "description": "Analytics view: referral source volume, acceptance rates, time-to-decision",
+    "spec_reference": "ui_layout/dashboard",
+    "steps": [
+      "Verify charts/tables render referral-source analytics and time-to-decision metrics from the analytics endpoints. Expected result: the UI renders the described element without console errors.",
+      "Component test asserts rendering with seeded metric data. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 91,
+    "category": "ui",
+    "app": "apps",
+    "description": "Needs-review queue for flagged medium/low confidence fields and escalations",
+    "spec_reference": "ui_layout/dashboard",
+    "steps": [
+      "Verify flagged fields and escalations appear in a dedicated queue for the human coordinator. Expected result: the UI renders the described element without console errors.",
+      "Component test asserts a flagged field appears in the queue. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 92,
+    "category": "ui",
+    "app": "apps",
+    "description": "Live/refreshing pipeline status so demo updates are visible",
+    "spec_reference": "implementation_steps/demo_script",
+    "steps": [
+      "Verify the dashboard reflects backend status changes (polling or websocket) without a manual full reload. Expected result: the UI renders the described element without console errors.",
+      "Test: change an intake status via API and assert the board updates. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 93,
+    "category": "ui",
+    "app": "apps",
+    "description": "Document upload UI feeding POST /process-document for the fax demo",
+    "spec_reference": "implementation_steps/demo_script",
+    "steps": [
+      "Verify a PDF can be uploaded from the dashboard and the pipeline progress (7 layers) is visible. Expected result: the UI renders the described element without console errors.",
+      "Test: upload a sample PDF and assert layer progress renders. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 94,
+    "category": "style",
+    "app": "apps",
+    "description": "Consistent design system: colors, typography, spacing tokens",
+    "spec_reference": "hackathon_constraints/judging_criteria UI/UX",
+    "steps": [
+      "Verify a central token set (Tailwind config or CSS variables) drives colors/spacing; no ad-hoc hex values scattered in components. Expected result: the command/check completes successfully with no blocking errors.",
+      "Visual pass confirms consistent look across all panels. Expected result: the UI renders the described element without console errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 95,
+    "category": "style",
+    "app": "apps",
+    "description": "Status and confidence color semantics consistent across the app",
+    "spec_reference": "ui_layout/dashboard",
+    "steps": [
+      "Verify the same green/yellow/red semantics are used everywhere confidence appears, and status colors are consistent between board and detail view. Expected result: the UI renders the described element without console errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 96,
+    "category": "style",
+    "app": "apps",
+    "description": "Responsive layout: dashboard usable on laptop and projector resolutions",
+    "spec_reference": "hackathon_constraints/judging_criteria UI/UX",
+    "steps": [
+      "Verify the board and detail views render without overflow at 1280x800 and 1920x1080. Expected result: the UI renders the described element without console errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 97,
+    "category": "style",
+    "app": "apps",
+    "description": "Loading, empty, and error states for every data panel",
+    "spec_reference": "hackathon_constraints/judging_criteria UI/UX",
+    "steps": [
+      "Verify each panel shows a loading indicator, a friendly empty state, and a non-technical error state. Expected result: the UI renders the described element without console errors.",
+      "Component tests assert all three states per panel. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 98,
+    "category": "style",
+    "app": "apps",
+    "description": "Accessible components: labels, contrast, keyboard navigation on interactive elements",
+    "spec_reference": "hackathon_constraints/judging_criteria UI/UX",
+    "steps": [
+      "Verify interactive elements have accessible names and visible focus, and confidence colors meet contrast plus a non-color cue (icon/text). Expected result: the UI renders the described element without console errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 99,
+    "category": "style",
+    "app": "apps",
+    "description": "Urgency badges visually distinct (routine / urgent / 24-hour start of care)",
+    "spec_reference": "data_model/care_request",
+    "steps": [
+      "Verify the three urgency levels render distinct badges on the pipeline board. Expected result: the UI renders the described element without console errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 100,
+    "category": "functional",
+    "app": "apis",
+    "description": "NPPES NPI Registry live validation with offline fallback",
+    "spec_reference": "data_model/knowledge_reference",
+    "steps": [
+      "Verify NPI validation calls the free NPPES API and interprets found/not-found. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a network failure degrades to Luhn-only validation with a MEDIUM confidence flag, never a crash. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test with mocked API covers found, not found, and timeout. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 101,
+    "category": "functional",
+    "app": "apis",
+    "description": "RxNorm medication normalization via RxNav API",
+    "spec_reference": "data_model/knowledge_reference",
+    "steps": [
+      "Verify medication names normalize through RxNav with fuzzy local fallback for variants. Expected result: the command/check completes successfully with no blocking errors.",
+      "Test with mocked API asserts normalization of a known variant. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 102,
+    "category": "functional",
+    "app": "apis",
+    "description": "pgvector/pg_trgm fuzzy matching for insurance plans, medications, physician names",
+    "spec_reference": "technology_stack/databases",
+    "steps": [
+      "Verify fuzzy lookup resolves near-miss names ('Untied Healthcare' -> 'UnitedHealthcare') above a similarity threshold. Expected result: the command/check completes successfully with no blocking errors.",
+      "Unit tests cover a hit, a below-threshold miss, and an exact match. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 103,
+    "category": "functional",
+    "app": "infra",
+    "description": "Twilio number + ConversationRelay + ngrok wiring documented and scriptable",
+    "spec_reference": "technology_stack/infrastructure",
+    "steps": [
+      "Verify infra contains a setup script/README section wiring the Twilio number's voice webhook to PUBLIC_BASE_URL. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify starting the tunnel and updating the webhook is a single documented command sequence. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 104,
+    "category": "functional",
+    "app": "apis",
+    "description": "E2E flow 1: discharge planner call from hello to done",
+    "spec_reference": "workflows/flow Discharge planner calls",
+    "steps": [
+      "Start the stack and open a simulated ConversationRelay session in PROVIDER mode. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the consent disclosure is the first utterance and 'yes' is logged. Expected result: the command/check completes successfully with no blocking errors.",
+      "Provide referral details (name, DOB, diagnosis, insurance, zip) across turns. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify mid-call eligibility runs and returns ACCEPT with a missing F2F note. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the spoken response passes the banned-phrase filter and asks for the F2F documentation specifically. Expected result: the command/check completes successfully with no blocking errors.",
+      "End the call and verify an intake record exists with status PENDING_DOCUMENTS. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an SMS confirmation with the referral ID was sent (mock Twilio). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a gap follow-up is scheduled in 4 hours in the retry queue. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the full transcript and consent flag are persisted. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify audit_trail contains the eligibility decision with its inputs. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the dashboard shows the new referral in the pending-documents column. Expected result: the UI renders the described element without console errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 105,
+    "category": "functional",
+    "app": "apis",
+    "description": "E2E flow 2: fax referral arrives and triggers follow-ups",
+    "spec_reference": "workflows/flow Fax referral arrives",
+    "steps": [
+      "POST a sample referral PDF to /process-document. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify the document advances through all 7 pipeline layers with Redis state visible per layer. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify extraction output includes confidence scores and the expected gap list (missing F2F note, low-confidence member ID). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the orchestrator routes the result to the Eligibility Agent and receives ACCEPT-with-gaps. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an outbound provider call task is created to verify the member ID and request the F2F note. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an outbound patient/family call task is created to confirm address and schedule the first visit. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify an SMS/email with a document upload link is queued. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify both outbound calls are configured to start at the consent node (safety-gated). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the intake record, extracted fields, gaps, and audit trail are all persisted and visible in the dashboard detail view. Expected result: the UI renders the described element without console errors.",
+      "Verify time-to-decision timestamps were recorded at each stage. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 106,
+    "category": "functional",
+    "app": "apis",
+    "description": "E2E flow 3: family member calls at midnight",
+    "spec_reference": "workflows/flow Family member calls at midnight",
+    "steps": [
+      "Open a simulated call classified into FAMILY mode. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a compassionate greeting plus consent gather occurs first. Expected result: the command/check completes successfully with no blocking errors.",
+      "Provide partial information (no clinical details) and verify the agent accepts incompleteness gracefully. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a preliminary eligibility check runs on zip and general insurance type. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the response sets expectations without a firm commitment and asks to prepare the insurance card and doctor contact. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify banned phrases never appear in any response of the session. Expected result: the command/check completes successfully with no blocking errors.",
+      "End the call and verify the intake record has status NEW and is flagged for a human coordinator by 9 AM. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the SMS confirmation was queued. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the transcript shows mode=family and consent=true. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the dashboard needs-review queue shows the coordinator flag. Expected result: the UI renders the described element without console errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 107,
+    "category": "functional",
+    "app": "apis",
+    "description": "E2E flow 4: wrong zip / unaccepted insurance -> fast honest DECLINE",
+    "spec_reference": "workflows/situation_handling",
+    "steps": [
+      "Simulate a provider call with an unserved zip code. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the eligibility result is DECLINE with the specific reason. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the spoken decline is honest and fast so the referral source can place the patient elsewhere. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the intake record is marked declined with the reason in the audit trail. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 108,
+    "category": "functional",
+    "app": "apis",
+    "description": "E2E flow 5: outbound follow-up call collects a missing document commitment",
+    "spec_reference": "implementation_steps/demo_script",
+    "steps": [
+      "Given an intake with a gap, trigger POST /follow-up/outbound-call. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify the outbound call opens with consent and states its single mission. Expected result: the command/check completes successfully with no blocking errors.",
+      "Simulate the provider agreeing to send the document; verify the gap status updates and the retry is cancelled. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the interaction is transcribed and audited. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 109,
+    "category": "functional",
+    "app": "apis",
+    "description": "E2E flow 6: agent error mid-call degrades to spoken fallback + human handoff",
+    "spec_reference": "workflows/situation_handling",
+    "steps": [
+      "Force an exception during a simulated call turn. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the caller hears the fallback ('Let me connect you with a coordinator') \u2014 never silence. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a handoff (transfer or scheduled callback) is logged and visible in the dashboard. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 110,
+    "category": "functional",
+    "app": "apis",
+    "description": "Concurrent calls and parallel fax processing without state bleed",
+    "spec_reference": "success_criteria/judging_alignment scalability",
+    "steps": [
+      "Run two simulated calls concurrently and verify call:{call_sid} states never mix fields. Expected result: the command/check completes successfully with no blocking errors.",
+      "Process two PDFs in parallel and verify pipeline:{doc_id} states remain independent. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 111,
+    "category": "functional",
+    "app": "apis",
+    "description": "Garbled OCR fields are never auto-populated; verified by phone instead",
+    "spec_reference": "workflows/situation_handling",
+    "steps": [
+      "Process a PDF with an uncorrectable garbled field and verify it is withheld from the intake record. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a gap entry with a voice-verification task is created for that field. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 112,
+    "category": "functional",
+    "app": "apis",
+    "description": "Demo compliance checklist verification script",
+    "spec_reference": "success_criteria/compliance_checklist",
+    "steps": [
+      "Verify a script/make target runs test_safety_layer.py plus smoke checks (health, eligibility, one PDF, one simulated call) before any demo. Expected result: the command/check completes successfully with no blocking errors.",
+      "Run it and confirm all checks pass with a summarized report. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 113,
+    "category": "functional",
+    "app": "apis",
+    "description": "Backend code coverage >= 80% on core modules",
+    "spec_reference": "success_criteria",
+    "steps": [
+      "Run pytest with coverage over eligibility, pipeline, voice, orchestrator, follow-up, and safety modules. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify total coverage is at least 80% and the report is generated. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 114,
+    "category": "functional",
+    "app": "apps",
+    "description": "Frontend test coverage on dashboard components",
+    "spec_reference": "success_criteria",
+    "steps": [
+      "Run the frontend test suite (vitest/RTL) covering board, detail, gaps, transcript, matches, analytics, review queue components. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify coverage of the components package is at least 80%. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  },
+  {
+    "id": 115,
+    "category": "functional",
+    "app": "infra",
+    "description": "One-command local bring-up via init.sh",
+    "spec_reference": "implementation_steps/prework",
+    "steps": [
+      "Run ./init.sh on a clean checkout and verify databases start, migrations/seeds apply, backend and frontend start. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the script prints the URLs for API, dashboard, and Neo4j browser plus next steps for ngrok/Twilio. Expected result: the command/check completes successfully with no blocking errors."
+    ],
+    "passes": false
+  }
+]

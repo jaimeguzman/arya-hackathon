@@ -1,0 +1,114 @@
+{
+  "_note": "Medicare Part A rules reflect real CMS home health conditions of payment (homebound status + face-to-face encounter required, no prior authorization). Medicare Advantage and commercial payer/plan names and rules are simulated for hackathon demo purposes and do not represent real payer contracts.",
+  "_references": [
+    "https://www.cms.gov/medicare/coding-billing/icd-10-codes",
+    "PROJECT.md#neo4j--knowledge-graph"
+  ],
+  "payers": [
+    {
+      "payer": "Medicare",
+      "plans": [
+        {
+          "plan": "Medicare Part A",
+          "plan_type": "Part A",
+          "covers": ["skilled_nursing", "physical_therapy", "occupational_therapy", "speech_therapy", "home_health_aide"],
+          "requires_prior_auth": false,
+          "requires_homebound_status": true,
+          "requires_face_to_face_encounter": true,
+          "visit_limit": null,
+          "notes": "Standard fee-for-service Medicare home health benefit. No prior auth required. F2F encounter must be within 90 days before or 30 days after start of care."
+        }
+      ]
+    },
+    {
+      "payer": "Humana",
+      "plans": [
+        {
+          "plan": "Humana Gold Plus HMO",
+          "plan_type": "Medicare Advantage HMO",
+          "covers": ["skilled_nursing", "physical_therapy", "occupational_therapy", "home_health_aide"],
+          "requires_prior_auth": true,
+          "requires_homebound_status": true,
+          "requires_face_to_face_encounter": true,
+          "visit_limit": 60,
+          "notes": "Simulated plan. Prior auth required within 48 hours of admission."
+        },
+        {
+          "plan": "Humana Choice PPO",
+          "plan_type": "Medicare Advantage PPO",
+          "covers": ["skilled_nursing", "physical_therapy", "occupational_therapy", "speech_therapy", "home_health_aide"],
+          "requires_prior_auth": true,
+          "requires_homebound_status": false,
+          "requires_face_to_face_encounter": true,
+          "visit_limit": 90,
+          "notes": "Simulated plan."
+        }
+      ]
+    },
+    {
+      "payer": "Aetna",
+      "plans": [
+        {
+          "plan": "Aetna Medicare Advantage HMO",
+          "plan_type": "Medicare Advantage HMO",
+          "covers": ["skilled_nursing", "physical_therapy", "occupational_therapy", "home_health_aide"],
+          "requires_prior_auth": true,
+          "requires_homebound_status": true,
+          "requires_face_to_face_encounter": true,
+          "visit_limit": 60,
+          "notes": "Simulated plan."
+        },
+        {
+          "plan": "Aetna Commercial PPO",
+          "plan_type": "Commercial PPO",
+          "covers": ["skilled_nursing", "physical_therapy", "occupational_therapy", "speech_therapy"],
+          "requires_prior_auth": true,
+          "requires_homebound_status": false,
+          "requires_face_to_face_encounter": false,
+          "visit_limit": 30,
+          "notes": "Simulated plan. Commercial plans generally do not require homebound status."
+        }
+      ]
+    },
+    {
+      "payer": "UnitedHealthcare",
+      "plans": [
+        {
+          "plan": "UHC Medicare Advantage HMO",
+          "plan_type": "Medicare Advantage HMO",
+          "covers": ["skilled_nursing", "physical_therapy", "occupational_therapy", "speech_therapy", "home_health_aide"],
+          "requires_prior_auth": true,
+          "requires_homebound_status": true,
+          "requires_face_to_face_encounter": true,
+          "visit_limit": 60,
+          "notes": "Simulated plan."
+        },
+        {
+          "plan": "UHC Dual Complete (Medicare-Medicaid)",
+          "plan_type": "Dual Special Needs Plan",
+          "covers": ["skilled_nursing", "physical_therapy", "occupational_therapy", "home_health_aide"],
+          "requires_prior_auth": true,
+          "requires_homebound_status": true,
+          "requires_face_to_face_encounter": true,
+          "visit_limit": 60,
+          "notes": "Simulated plan. Coordinate benefits with state Medicaid."
+        }
+      ]
+    },
+    {
+      "payer": "State Medicaid",
+      "plans": [
+        {
+          "plan": "Medicaid Fee-for-Service",
+          "plan_type": "Medicaid FFS",
+          "covers": ["skilled_nursing", "home_health_aide"],
+          "requires_prior_auth": true,
+          "requires_homebound_status": false,
+          "requires_face_to_face_encounter": true,
+          "visit_limit": 40,
+          "notes": "Simulated plan modeled loosely on typical state Medicaid home health benefit design. Actual rules vary significantly by state."
+        }
+      ]
+    }
+  ]
+}

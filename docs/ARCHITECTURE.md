@@ -36,7 +36,7 @@ Steps:
 
 1. A referral enters through one of two channels: a live call/SMS via Twilio, or a fax/PDF upload.
 2. Both channels hand off to the Intake Agent Orchestrator (LangGraph state machine) — the only component that makes decisions.
-3. The orchestrator delegates to exactly one of four sub-agents depending on what's needed: Voice Agent (talk), Document Pipeline (read), Eligibility Agent (decide), Follow-up Agent (chase gaps).
+3. The orchestrator delegates to exactly one of four sub-agents depending on what's needed: Voice Agent (talk), Document Pipeline (**read and analyze every fax/PDF here** — this is where all document checking/extraction/validation happens, via the 7-layer pipeline detailed in §4), Eligibility Agent (decide), Follow-up Agent (chase gaps).
 4. Sub-agents read/write the data layer (PostgreSQL, Neo4j, Redis) but never decide anything themselves except the Eligibility Agent, whose decision is deterministic code, not an LLM call.
 5. Outcomes are one of: accept/decline recorded in PostgreSQL, an SMS/email sent, an outbound call placed back through Twilio, or a dashboard update.
 6. PostgreSQL's referral-source history feeds back into the Voice Agent on the next call from the same source — this is caller personalization (Feature 5 in `PROJECT.md`), shown as the dashed feedback line.
@@ -71,6 +71,7 @@ sequenceDiagram
     participant Gemini as Gemini Flash
     participant Elig as check_eligibility()
     participant Filter as Banned-Phrase Filter
+    participant Fallback as Failure Handoff
 
     Caller->>Twilio: Call connects
     Twilio->>Consent: Route to first node
@@ -82,15 +83,21 @@ sequenceDiagram
         Consent->>Voice: consent_given = true
         loop Each conversation turn
             Caller->>Voice: Speaks (referral details)
-            Voice->>Tok: Raw transcript with identifiers
-            Tok->>Gemini: Tokenized text only, no raw PII
-            Tok->>Elig: Structured fields (zip, payer, service type)
-            Elig-->>Tok: ACCEPT / DECLINE / NEEDS_MORE_INFO (deterministic, not LLM)
-            Gemini-->>Tok: Draft response (still tokenized)
-            Tok->>Filter: Rehydrated response
-            Filter-->>Voice: Approved response or safe fallback
-            Voice->>Twilio: Speak response
-            Twilio->>Caller: TTS output
+            alt Turn succeeds
+                Voice->>Tok: Raw transcript with identifiers
+                Tok->>Gemini: Tokenized text only, no raw PII
+                Tok->>Elig: Structured fields (zip, payer, service type)
+                Elig-->>Tok: ACCEPT / DECLINE / NEEDS_MORE_INFO (deterministic, not LLM)
+                Gemini-->>Tok: Draft response (still tokenized)
+                Tok->>Filter: Rehydrated response
+                Filter-->>Voice: Approved response or safe fallback
+                Voice->>Twilio: Speak response
+                Twilio->>Caller: TTS output
+            else Exception, timeout, or repeated confusion (must-have.md #6)
+                Voice->>Fallback: Trigger failure handoff
+                Fallback->>Twilio: "Let me connect you with a coordinator"
+                Twilio->>Caller: Handoff message, then transfer or scheduled callback
+            end
         end
     end
 ```
@@ -106,6 +113,8 @@ Steps:
 7. Twilio speaks the approved response; the loop repeats for the next turn.
 
 Outbound calls (Feature 4) re-enter this exact same flow via Voice Agent Outbound mode — there is no separate, unguarded outbound path.
+
+8. **Failure handling (no silent drop):** if anything mid-call raises an exception, times out, or the caller isn't understood after repeated attempts, that turn routes to the same handoff mechanism as a consent "no" — a spoken fallback ("Let me connect you with a coordinator") followed by a human transfer or a scheduled callback. No call path is allowed to end in silence. This is a distinct guarantee from consent (opt-out vs. failure), but both terminate at the same handoff code path. Full spec: [`must-have.md`](must-have.md) Part 1, guarantee #6.
 
 Full spec, code-level implementation, and the pre-demo checklist: [`must-have.md`](must-have.md) Part 1.
 
@@ -244,8 +253,14 @@ sequenceDiagram
     participant Follow as Follow-up Agent
 
     Fax->>Pipe: Referral packet arrives
-    Pipe->>Pipe: Layers 1-7 run (see section 4)
-    Pipe->>Orch: Structured data + gap list
+    Pipe->>Pipe: Layer 1 - ingest & preprocess (deskew, denoise, detect scan vs. digital text)
+    Pipe->>Pipe: Layer 2 - classify each page (physician order, F2F note, insurance card, junk, etc.)
+    Pipe->>Pipe: Layer 3 - route: clean digital -> rules (Docling), messy scan -> Gemini vision
+    Pipe->>Pipe: Layer 4 - extract into standardized raw JSON
+    Pipe->>Pipe: Layer 5 - Validation -> Correction -> Cross-Reference agents check every field
+    Pipe->>Pipe: Layer 6 - completeness check, build gap list
+    Pipe->>Pipe: Layer 7 - confidence scoring (high/medium/low) decides auto-populate vs. withhold
+    Pipe->>Orch: Structured data + gap list (this is where "document checking/analysis" happens - full detail in §4)
     Orch->>Elig: Check eligibility
     Elig-->>Orch: ACCEPT, missing F2F note + low-confidence insurance ID
     Orch->>Voice: Trigger outbound call

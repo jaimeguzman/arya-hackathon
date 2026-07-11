@@ -6,5 +6,20 @@
     "github@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "code-review@claude-plugins-official": true
+  },
+  "permissions": {
+    "deny": [
+      "Write(//Users/jaimeguzman/.claude.json)",
+      "Edit(//Users/jaimeguzman/.claude.json)",
+      "Write(//Users/jaimeguzman/.claude/**)",
+      "Edit(//Users/jaimeguzman/.claude/**)",
+      "Write(//Users/jaimeguzman/.*)",
+      "Edit(//Users/jaimeguzman/.*)",
+      "Write(//Users/jaimeguzman/Dev/AryaHackthon/*)",
+      "Write(//etc/**)",
+      "Edit(//etc/**)",
+      "Write(//tmp/**)",
+      "Edit(//tmp/**)"
+    ]
   }
 }
