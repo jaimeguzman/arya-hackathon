@@ -72,17 +72,26 @@ def rehydrate(text: str, known_fields: dict[str, str]) -> str:
     return rehydrated
 
 
-def call_llm(tokenized_text: str, system_prompt: str) -> str:
-    """The ONE function in the codebase allowed to call the LLM API."""
-    for pattern in PHI_PATTERNS:
-        if re.search(pattern, tokenized_text):
-            raise ValueError("Refusing LLM call: raw identifier pattern detected in payload")
+def call_llm(contents: list[dict], system_prompt: str) -> str:
+    """The ONE function in the codebase allowed to call the LLM API.
+
+    contents is the full tokenized conversation so far, in Gemini's
+    role/parts shape: [{"role": "user"/"model", "parts": [{"text": "..."}]}].
+    Without this, each turn was stateless and the agent re-asked for data
+    the caller had already given (caught during Task 1 end-to-end testing).
+    """
+    for turn in contents:
+        for part in turn.get("parts", []):
+            text = part.get("text", "")
+            for pattern in PHI_PATTERNS:
+                if re.search(pattern, text):
+                    raise ValueError("Refusing LLM call: raw identifier pattern detected in payload")
 
     client = _get_client()
     settings = get_settings()
     response = client.models.generate_content(
         model=settings.gemini_model,
-        contents=tokenized_text,
+        contents=contents,
         config=genai.types.GenerateContentConfig(system_instruction=system_prompt),
     )
     return response.text

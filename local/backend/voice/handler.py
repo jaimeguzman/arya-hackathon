@@ -51,7 +51,8 @@ def handle_turn(session: CallSession, caller_text: str) -> str:
 
         system_prompt = _MODE_PROMPTS[session.mode]
         tokenized = guardrails.tokenize(caller_text, session.known_fields)
-        raw_reply = guardrails.call_llm(tokenized, system_prompt)
+        contents = _build_contents(session, tokenized)
+        raw_reply = guardrails.call_llm(contents, system_prompt)
 
         parsed = _parse_llm_json(raw_reply)
         session.known_fields.update(parsed.get("extracted", {}))
