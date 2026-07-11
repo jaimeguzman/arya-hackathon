@@ -27,8 +27,13 @@ apps/
 ├── dashboard/           # React intake dashboard
 │   ├── src/
 │   └── package.json
+├── landing/             # Next.js 16 marketing/pitch landing page (static, no PHI)
+│   ├── app/
+│   └── package.json
 └── README.md
 ```
+
+- **Landing page** (`landing/`) — static Next.js 16 single-page site to pitch the project (hero, problem stats, how-it-works, features). Runs on port 3100 (`npm run dev`); `npm run validate` runs type-check + build. See [`landing/README.md`](landing/README.md).
 
 ## Requirements
 
