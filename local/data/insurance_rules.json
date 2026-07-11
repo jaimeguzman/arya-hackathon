@@ -1,0 +1,309 @@
+{
+  "payers": [
+    {"name": "Medicare", "type": "federal"},
+    {"name": "Medicaid_NY", "type": "state"},
+    {"name": "Humana", "type": "commercial"},
+    {"name": "Aetna", "type": "commercial"},
+    {"name": "UnitedHealthcare", "type": "commercial"}
+  ],
+  "plans": [
+    {
+      "name": "Medicare Part A",
+      "planType": "part_a",
+      "code": "MCARE_A",
+      "payerName": "Medicare",
+      "accepted": true,
+      "notes": "Home health under Part A when homebound criteria met",
+      "coverage": [
+        {
+          "serviceType": "skilled_nursing",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders", "face_to_face_encounter", "homebound_certification"],
+          "visitLimit": null,
+          "episodeDays": 60,
+          "notes": "No prior auth; F2F and homebound required"
+        },
+        {
+          "serviceType": "physical_therapy",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders", "face_to_face_encounter", "homebound_certification"],
+          "visitLimit": null,
+          "episodeDays": 60,
+          "notes": "Covered with qualifying skilled need"
+        },
+        {
+          "serviceType": "occupational_therapy",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders", "face_to_face_encounter", "homebound_certification"],
+          "visitLimit": null,
+          "episodeDays": 60,
+          "notes": null
+        },
+        {
+          "serviceType": "speech_therapy",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders", "face_to_face_encounter", "homebound_certification"],
+          "visitLimit": null,
+          "episodeDays": 60,
+          "notes": null
+        },
+        {
+          "serviceType": "home_health_aide",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders", "homebound_certification"],
+          "visitLimit": null,
+          "episodeDays": 60,
+          "notes": "Only with concurrent skilled service"
+        },
+        {
+          "serviceType": "medical_social_work",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders"],
+          "visitLimit": 6,
+          "episodeDays": 60,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "name": "Medicare Part B",
+      "planType": "part_b",
+      "code": "MCARE_B",
+      "payerName": "Medicare",
+      "accepted": true,
+      "coverage": [
+        {
+          "serviceType": "physical_therapy",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders"],
+          "visitLimit": null,
+          "episodeDays": null,
+          "notes": "Outpatient therapy benefit when not under home health episode"
+        },
+        {
+          "serviceType": "occupational_therapy",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders"],
+          "visitLimit": null,
+          "episodeDays": null,
+          "notes": null
+        },
+        {
+          "serviceType": "speech_therapy",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders"],
+          "visitLimit": null,
+          "episodeDays": null,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "name": "NY Medicaid Managed Care",
+      "planType": "medicaid",
+      "code": "NY_MEDICAID_MC",
+      "payerName": "Medicaid_NY",
+      "accepted": true,
+      "coverage": [
+        {
+          "serviceType": "skilled_nursing",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 20,
+          "episodeDays": 30,
+          "notes": "Prior auth required within 48 hours"
+        },
+        {
+          "serviceType": "physical_therapy",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 12,
+          "episodeDays": 30,
+          "notes": null
+        },
+        {
+          "serviceType": "home_health_aide",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization", "functional_assessment"],
+          "visitLimit": 40,
+          "episodeDays": 30,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "name": "Humana Gold Plus HMO",
+      "planType": "medicare_advantage",
+      "code": "HUMANA_GOLD_HMO",
+      "payerName": "Humana",
+      "accepted": true,
+      "coverage": [
+        {
+          "serviceType": "skilled_nursing",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "face_to_face_encounter", "prior_authorization"],
+          "visitLimit": null,
+          "episodeDays": 60,
+          "notes": null
+        },
+        {
+          "serviceType": "physical_therapy",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 20,
+          "episodeDays": 60,
+          "notes": null
+        },
+        {
+          "serviceType": "occupational_therapy",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 15,
+          "episodeDays": 60,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "name": "Aetna Medicare Advantage PPO",
+      "planType": "medicare_advantage",
+      "code": "AETNA_MA_PPO",
+      "payerName": "Aetna",
+      "accepted": true,
+      "coverage": [
+        {
+          "serviceType": "skilled_nursing",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "face_to_face_encounter", "prior_authorization"],
+          "visitLimit": null,
+          "episodeDays": 60,
+          "notes": null
+        },
+        {
+          "serviceType": "physical_therapy",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders"],
+          "visitLimit": 25,
+          "episodeDays": 60,
+          "notes": null
+        },
+        {
+          "serviceType": "speech_therapy",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 12,
+          "episodeDays": 60,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "name": "Aetna Choice PPO",
+      "planType": "ppo",
+      "code": "AETNA_CHOICE_PPO",
+      "payerName": "Aetna",
+      "accepted": true,
+      "coverage": [
+        {
+          "serviceType": "skilled_nursing",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 30,
+          "episodeDays": 90,
+          "notes": null
+        },
+        {
+          "serviceType": "physical_therapy",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 20,
+          "episodeDays": 90,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "name": "UnitedHealthcare Medicare Advantage",
+      "planType": "medicare_advantage",
+      "code": "UHC_MA",
+      "payerName": "UnitedHealthcare",
+      "accepted": true,
+      "coverage": [
+        {
+          "serviceType": "skilled_nursing",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "face_to_face_encounter", "prior_authorization"],
+          "visitLimit": null,
+          "episodeDays": 60,
+          "notes": null
+        },
+        {
+          "serviceType": "physical_therapy",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 18,
+          "episodeDays": 60,
+          "notes": null
+        },
+        {
+          "serviceType": "home_health_aide",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 20,
+          "episodeDays": 60,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "name": "UnitedHealthcare Dual Complete",
+      "planType": "hmo",
+      "code": "UHC_DUAL",
+      "payerName": "UnitedHealthcare",
+      "accepted": true,
+      "coverage": [
+        {
+          "serviceType": "skilled_nursing",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 25,
+          "episodeDays": 30,
+          "notes": null
+        },
+        {
+          "serviceType": "medical_social_work",
+          "priorAuthRequired": false,
+          "requiredDocs": ["physician_orders"],
+          "visitLimit": 8,
+          "episodeDays": 30,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "name": "Humana Choice PPO",
+      "planType": "ppo",
+      "code": "HUMANA_CHOICE_PPO",
+      "payerName": "Humana",
+      "accepted": true,
+      "coverage": [
+        {
+          "serviceType": "skilled_nursing",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 20,
+          "episodeDays": 60,
+          "notes": null
+        },
+        {
+          "serviceType": "occupational_therapy",
+          "priorAuthRequired": true,
+          "requiredDocs": ["physician_orders", "prior_authorization"],
+          "visitLimit": 15,
+          "episodeDays": 60,
+          "notes": null
+        }
+      ]
+    }
+  ]
+}

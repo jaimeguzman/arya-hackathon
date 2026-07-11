@@ -1,0 +1,11 @@
+sqlalchemy[asyncio]>=2.0.36
+asyncpg>=0.30.0
+neo4j>=5.26.0
+redis>=5.2.0
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.1
+# Orchestrator (Task 4)
+langgraph>=1.2.0
+# Tests
+pytest>=8.0.0
+pytest-asyncio>=0.24.0

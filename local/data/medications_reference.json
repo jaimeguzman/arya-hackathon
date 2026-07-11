@@ -1,0 +1,223 @@
+[
+  {
+    "name": "Glucophage",
+    "genericName": "metformin",
+    "category": "antidiabetic",
+    "minDose": 500,
+    "maxDose": 2000,
+    "unit": "mg",
+    "commonDoses": [500, 850, 1000],
+    "contraindications": []
+  },
+  {
+    "name": "Lantus",
+    "genericName": "insulin_glargine",
+    "category": "antidiabetic",
+    "minDose": 10,
+    "maxDose": 80,
+    "unit": "units",
+    "commonDoses": [10, 20, 30, 40],
+    "contraindications": []
+  },
+  {
+    "name": "Lipitor",
+    "genericName": "atorvastatin",
+    "category": "statin",
+    "minDose": 10,
+    "maxDose": 80,
+    "unit": "mg",
+    "commonDoses": [10, 20, 40, 80],
+    "contraindications": []
+  },
+  {
+    "name": "Lisinopril",
+    "genericName": "lisinopril",
+    "category": "ace_inhibitor",
+    "minDose": 2.5,
+    "maxDose": 40,
+    "unit": "mg",
+    "commonDoses": [5, 10, 20, 40],
+    "contraindications": [
+      {"genericName": "potassium_chloride", "severity": "moderate", "reason": "Hyperkalemia risk"}
+    ]
+  },
+  {
+    "name": "Metoprolol",
+    "genericName": "metoprolol",
+    "category": "beta_blocker",
+    "minDose": 25,
+    "maxDose": 200,
+    "unit": "mg",
+    "commonDoses": [25, 50, 100],
+    "contraindications": []
+  },
+  {
+    "name": "Amlodipine",
+    "genericName": "amlodipine",
+    "category": "calcium_channel_blocker",
+    "minDose": 2.5,
+    "maxDose": 10,
+    "unit": "mg",
+    "commonDoses": [2.5, 5, 10],
+    "contraindications": []
+  },
+  {
+    "name": "Furosemide",
+    "genericName": "furosemide",
+    "category": "diuretic",
+    "minDose": 20,
+    "maxDose": 160,
+    "unit": "mg",
+    "commonDoses": [20, 40, 80],
+    "contraindications": [
+      {"genericName": "lithium", "severity": "major", "reason": "Lithium toxicity risk with volume depletion"}
+    ]
+  },
+  {
+    "name": "Warfarin",
+    "genericName": "warfarin",
+    "category": "anticoagulant",
+    "minDose": 1,
+    "maxDose": 10,
+    "unit": "mg",
+    "commonDoses": [2, 5, 7.5],
+    "contraindications": [
+      {"genericName": "aspirin", "severity": "major", "reason": "Increased bleeding risk"},
+      {"genericName": "ibuprofen", "severity": "major", "reason": "Increased bleeding risk"}
+    ]
+  },
+  {
+    "name": "Aspirin",
+    "genericName": "aspirin",
+    "category": "antiplatelet",
+    "minDose": 81,
+    "maxDose": 325,
+    "unit": "mg",
+    "commonDoses": [81, 325],
+    "contraindications": [
+      {"genericName": "warfarin", "severity": "major", "reason": "Increased bleeding risk"},
+      {"genericName": "ibuprofen", "severity": "moderate", "reason": "Additive GI bleed risk"}
+    ]
+  },
+  {
+    "name": "Ibuprofen",
+    "genericName": "ibuprofen",
+    "category": "nsaid",
+    "minDose": 200,
+    "maxDose": 800,
+    "unit": "mg",
+    "commonDoses": [200, 400, 600],
+    "contraindications": [
+      {"genericName": "warfarin", "severity": "major", "reason": "Increased bleeding risk"},
+      {"genericName": "aspirin", "severity": "moderate", "reason": "Additive GI bleed risk"}
+    ]
+  },
+  {
+    "name": "Omeprazole",
+    "genericName": "omeprazole",
+    "category": "ppi",
+    "minDose": 10,
+    "maxDose": 40,
+    "unit": "mg",
+    "commonDoses": [20, 40],
+    "contraindications": [
+      {"genericName": "clopidogrel", "severity": "moderate", "reason": "May reduce clopidogrel efficacy"}
+    ]
+  },
+  {
+    "name": "Plavix",
+    "genericName": "clopidogrel",
+    "category": "antiplatelet",
+    "minDose": 75,
+    "maxDose": 75,
+    "unit": "mg",
+    "commonDoses": [75],
+    "contraindications": [
+      {"genericName": "omeprazole", "severity": "moderate", "reason": "CYP2C19 interaction"}
+    ]
+  },
+  {
+    "name": "Gabapentin",
+    "genericName": "gabapentin",
+    "category": "anticonvulsant",
+    "minDose": 100,
+    "maxDose": 3600,
+    "unit": "mg",
+    "commonDoses": [100, 300, 600],
+    "contraindications": []
+  },
+  {
+    "name": "Sertraline",
+    "genericName": "sertraline",
+    "category": "ssri",
+    "minDose": 25,
+    "maxDose": 200,
+    "unit": "mg",
+    "commonDoses": [25, 50, 100],
+    "contraindications": []
+  },
+  {
+    "name": "Levothyroxine",
+    "genericName": "levothyroxine",
+    "category": "thyroid",
+    "minDose": 25,
+    "maxDose": 200,
+    "unit": "mcg",
+    "commonDoses": [50, 75, 100, 125],
+    "contraindications": []
+  },
+  {
+    "name": "Albuterol",
+    "genericName": "albuterol",
+    "category": "bronchodilator",
+    "minDose": 90,
+    "maxDose": 180,
+    "unit": "mcg",
+    "commonDoses": [90],
+    "contraindications": []
+  },
+  {
+    "name": "Prednisone",
+    "genericName": "prednisone",
+    "category": "corticosteroid",
+    "minDose": 5,
+    "maxDose": 60,
+    "unit": "mg",
+    "commonDoses": [5, 10, 20, 40],
+    "contraindications": []
+  },
+  {
+    "name": "Potassium Chloride",
+    "genericName": "potassium_chloride",
+    "category": "electrolyte",
+    "minDose": 10,
+    "maxDose": 40,
+    "unit": "mEq",
+    "commonDoses": [10, 20],
+    "contraindications": [
+      {"genericName": "lisinopril", "severity": "moderate", "reason": "Hyperkalemia risk"}
+    ]
+  },
+  {
+    "name": "Lithium",
+    "genericName": "lithium",
+    "category": "mood_stabilizer",
+    "minDose": 300,
+    "maxDose": 1200,
+    "unit": "mg",
+    "commonDoses": [300, 600],
+    "contraindications": [
+      {"genericName": "furosemide", "severity": "major", "reason": "Lithium toxicity risk"}
+    ]
+  },
+  {
+    "name": "Acetaminophen",
+    "genericName": "acetaminophen",
+    "category": "analgesic",
+    "minDose": 325,
+    "maxDose": 3000,
+    "unit": "mg",
+    "commonDoses": [325, 500, 650],
+    "contraindications": []
+  }
+]
