@@ -12,6 +12,11 @@ twilio>=9.3.0
 httpx>=0.27.0
 pymupdf>=1.24.0
 Pillow>=10.4.0
+# Two Gemini SDKs, deliberately: gemini_client.py (services/) uses the legacy
+# google-generativeai chat/session API; backend/voice/guardrails.py uses the
+# current google-genai SDK. Unifying them is a separate task, not done here
+# to avoid risking the Document Pipeline's vision-extraction call sites.
+google-generativeai>=0.8.0
 google-genai>=1.0.0
 # Local Phase 5/6 stack (Orchestrator, Follow-up) is verified on langgraph 0.3.x —
 # empirically confirmed 2026-07-11 (21/25 orchestrator+followup tests pass on 0.3.34;

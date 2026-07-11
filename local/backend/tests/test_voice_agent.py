@@ -71,6 +71,11 @@ class TestVoiceAgentTurns(unittest.TestCase):
 
         async def run() -> None:
             await agent.on_setup({"callSid": "CA_test1", "from": "+15551212"})
+            # must-have.md #4 — consent gather is the literal first turn now;
+            # it's deterministic keyword matching, not a Gemini call, so it
+            # doesn't consume a scripted response.
+            consent_reply = await agent.handle_turn("CA_test1", "yes that's fine")
+            self.assertIsNone(consent_reply["conversation_mode"])
             r1 = await agent.handle_turn("CA_test1", "I'm a discharge planner")
             self.assertEqual(r1["conversation_mode"], "provider")
             r2 = await agent.handle_turn(

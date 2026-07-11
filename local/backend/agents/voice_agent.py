@@ -14,6 +14,30 @@ from uuid import UUID
 
 from backend.agents.orchestrator import get_orchestrator, map_extracted_to_buckets
 from backend.models.database import get_redis, get_sessionmaker
+from backend.voice import consent as consent_gate
+from backend.voice.guardrails import rehydrate, tokenize
+
+# must-have.md #2 names exactly these as identifiers — NOT clinical/operational
+# fields like zip_code, icd_codes, or diagnosis text. Tokenizing those too
+# confused Gemini (it saw literal "{{ZIP_CODE}}" tokens with no explanation
+# and asked the caller to repeat already-given info) — caught during Task 1
+# end-to-end testing 2026-07-11.
+_IDENTIFIER_FIELDS = {
+    "patient_name",
+    "date_of_birth",
+    "dob",
+    "patient_phone",
+    "phone",
+    "patient_address",
+    "address",
+    "insurance_member_id",
+    "member_id",
+    "ssn",
+}
+
+
+def _identifier_subset(accumulated_data: dict[str, Any]) -> dict[str, str]:
+    return {k: v for k, v in accumulated_data.items() if k in _IDENTIFIER_FIELDS and v}
 from backend.models.schemas import (
     EligibilityCheckRequest,
     FollowUpActionCreate,
@@ -108,6 +132,7 @@ class CallSession:
     pending_task: asyncio.Task | None = None
     call_record_created: bool = False
     eligibility_result: dict[str, Any] | None = None
+    consent_given: bool = False  # must-have.md #4 — no data collection before this is True
 
 
 class VoiceAgent:
@@ -209,6 +234,42 @@ class VoiceAgent:
             )
             return {
                 "response": msg,
+                "extracted": {},
+                "accumulated_data": session.accumulated_data,
+                "ready_for_eligibility": False,
+                "eligibility_result": None,
+                "guardrail_violations": [],
+                "conversation_mode": session.conversation_mode,
+            }
+
+        # must-have.md #4 — consent gather is the literal first gate, before
+        # any data collection begins. No exceptions except voicemail above
+        # (a pre-scripted message that collects nothing).
+        if not session.consent_given:
+            if consent_gate.is_negative(user_text):
+                return {
+                    "response": "No problem — thank you for calling. Goodbye.",
+                    "extracted": {},
+                    "accumulated_data": session.accumulated_data,
+                    "ready_for_eligibility": False,
+                    "eligibility_result": None,
+                    "guardrail_violations": [],
+                    "conversation_mode": session.conversation_mode,
+                }
+            if consent_gate.is_affirmative(user_text):
+                session.consent_given = True
+                return {
+                    "response": "Thank you. How can I help you today?",
+                    "extracted": {},
+                    "accumulated_data": session.accumulated_data,
+                    "ready_for_eligibility": False,
+                    "eligibility_result": None,
+                    "guardrail_violations": [],
+                    "conversation_mode": session.conversation_mode,
+                }
+            # Ambiguous reply to the consent question — re-ask, never guess.
+            return {
+                "response": consent_gate.CONSENT_QUESTION,
                 "extracted": {},
                 "accumulated_data": session.accumulated_data,
                 "ready_for_eligibility": False,
@@ -328,15 +389,24 @@ class VoiceAgent:
         }
 
     async def _gemini_turn(self, session: CallSession, user_msg: str) -> str:
+        # must-have.md #2 — tokenize known identifiers out of history + the
+        # current message before they reach the LLM; rehydrate the raw
+        # response afterward, backend-only, before it's parsed/used.
         prompt = session.system_prompt or load_prompt("provider_inbound")
-        hist = list(session.conversation_history)
+        identifiers = _identifier_subset(session.accumulated_data)
+        hist = [
+            {**h, "content": tokenize(h.get("content", ""), identifiers)}
+            for h in session.conversation_history
+        ]
+        tokenized_msg = tokenize(user_msg, identifiers)
         loop = asyncio.get_event_loop()
         task = loop.create_task(
-            asyncio.to_thread(self.gemini.chat, prompt, hist, user_msg)
+            asyncio.to_thread(self.gemini.chat, prompt, hist, tokenized_msg)
         )
         session.pending_task = task
         try:
-            return await task
+            raw = await task
+            return rehydrate(raw, identifiers)
         except asyncio.CancelledError:
             return json.dumps(
                 {
@@ -417,11 +487,20 @@ class VoiceAgent:
             f"Matched caregivers: {er['matched_caregivers']}. "
             "Communicate this to the caller naturally."
         )
+        # must-have.md #2 — same tokenize-before/rehydrate-after treatment
+        # as _gemini_turn; the eligibility injection itself (decision/reasons/
+        # missing docs) is operational data, not caller PHI, so it isn't tokenized.
+        identifiers = _identifier_subset(session.accumulated_data)
+        tokenized_hist = [
+            {**h, "content": tokenize(h.get("content", ""), identifiers)}
+            for h in session.conversation_history
+        ]
         raw = self.gemini.chat(
             session.system_prompt or load_prompt("provider_inbound"),
-            session.conversation_history + [{"role": "user", "content": inject}],
+            tokenized_hist + [{"role": "user", "content": inject}],
             "Please speak the eligibility result to the caller.",
         )
+        raw = rehydrate(raw, identifiers)
         parsed = _parse_json_response(raw)
         text = parsed.get("response") or filler
         text, viol = await self._guardrail_loop(session, text)

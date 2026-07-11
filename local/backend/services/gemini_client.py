@@ -10,7 +10,7 @@ from typing import Any
 from backend.config import get_settings
 
 logger = logging.getLogger(__name__)
-MODEL_ID = "gemini-2.0-flash"
+MODEL_ID = "gemini-flash-latest"  # gemini-2.0-flash was retired by Google (404 NOT_FOUND) — confirmed 2026-07-11
 
 
 class FakeGeminiClient:

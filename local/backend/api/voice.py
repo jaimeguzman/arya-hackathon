@@ -14,6 +14,7 @@ from fastapi.responses import Response
 from backend.agents.voice_agent import get_voice_agent
 from backend.config import get_settings
 from backend.models.schemas import VoiceOutboundRequest, VoiceTestRequest, VoiceTestResponse
+from backend.voice.consent import CONSENT_QUESTION
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ def _conversation_relay_twiml(params: dict[str, Any] | None = None) -> str:
         '<?xml version="1.0" encoding="UTF-8"?>'
         "<Response><Connect>"
         f'<ConversationRelay url="{url}" '
-        'welcomeGreeting="Thank you for calling ABC Home Health. How can I help you today?" '
+        f'welcomeGreeting="{escape(CONSENT_QUESTION)}" '
         'ttsProvider="google" '
         'transcriptionProvider="deepgram">'
         f"{param_xml}"
