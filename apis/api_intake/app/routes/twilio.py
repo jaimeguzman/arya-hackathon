@@ -22,7 +22,7 @@ from xml.sax.saxutils import quoteattr
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 
-from app.agents.eligibility_agent import EligibilityRequest, decide, find_plan_in_text
+from app.agents.eligibility_agent import decide, find_plan_in_text
 from app.agents.mode_router import (
     CAUTIOUS_DEFAULT_MODE,
     MODE_CLARIFYING_QUESTION,
@@ -33,6 +33,13 @@ from app.agents.mode_router import (
     ModeTransition,
     classify_utterance,
     load_mode_prompt,
+)
+from app.agents.provider_intake import (
+    PROVIDER_FIELD_QUESTIONS,
+    build_eligibility_request,
+    extract_diagnosis,
+    extract_dob,
+    extract_patient_name,
 )
 from app.config import get_settings
 from app.safety.consent import CONSENT_DISCLOSURE, CallRecord, handle_consent_answer
@@ -75,6 +82,11 @@ class CallSession:
         self.patient_zip: str | None = None
         self.insurance_plan: str | None = None
         self.service_type: str | None = None
+        # Provider-mode clinical fields (feature 45). Name and DOB are
+        # identifiers: backend-only, never part of an eligibility request.
+        self.patient_name: str | None = None
+        self.patient_dob: str | None = None
+        self.diagnosis_code: str | None = None
         self.decision_spoken = False
         self.clarification_attempts = 0
         self.mode: CallerMode | None = None
@@ -211,6 +223,23 @@ def _extract_fields(session: CallSession, utterance: str) -> bool:
         if plan:
             session.insurance_plan = plan["plan"]
             progressed = True
+    # Provider-mode clinical fields (feature 45) — extracted on every turn so
+    # volunteered details accumulate in the call state regardless of ordering.
+    if session.patient_name is None:
+        name = extract_patient_name(utterance)
+        if name:
+            session.patient_name = name
+            progressed = True
+    if session.patient_dob is None:
+        dob = extract_dob(utterance)
+        if dob:
+            session.patient_dob = dob
+            progressed = True
+    if session.diagnosis_code is None:
+        diagnosis = extract_diagnosis(utterance)
+        if diagnosis:
+            session.diagnosis_code = diagnosis
+            progressed = True
     return progressed
 
 
@@ -223,11 +252,14 @@ def _missing_field_question(session: CallSession) -> str:
 
 
 def _eligibility_wording(session: CallSession) -> str:
+    # Tokenization boundary (guarantee 2 / feature 45 step 6): the eligibility
+    # loop receives only structured non-identifying fields — never name or DOB.
     decision = decide(
-        EligibilityRequest(
+        build_eligibility_request(
             patient_zip=session.patient_zip,
             insurance_plan=session.insurance_plan,
             service_type=session.service_type,
+            diagnosis_code=session.diagnosis_code,
         )
     )
     session.decision_spoken = True
@@ -268,15 +300,42 @@ def _post_consent_turn(session: CallSession, utterance: str) -> str:
     return _provider_turn(session, progressed)
 
 
+def _eligibility_ready(session: CallSession) -> bool:
+    """Zip + insurance + a service path (stated, or derivable from diagnosis)."""
+    return bool(
+        session.patient_zip
+        and session.insurance_plan
+        and (session.service_type or session.diagnosis_code)
+    )
+
+
+def _provider_structured_question(session: CallSession) -> str | None:
+    """Next question in the provider-mode structured order (feature 45)."""
+    for field, question in PROVIDER_FIELD_QUESTIONS:
+        if getattr(session, field) is None:
+            return question
+    return None
+
+
 def _provider_turn(session: CallSession, progressed: bool) -> str:
-    """Deterministic provider-mode turn. Swap point for the LLM gateway."""
-    if session.patient_zip and session.insurance_plan and session.service_type:
+    """Deterministic intake turn. Swap point for the LLM gateway.
+
+    Provider mode (feature 45) runs the structured clinical flow: name, DOB,
+    diagnosis, insurance, zip — with the real-time eligibility decision spoken
+    mid-call the moment the tokenized fields it needs are complete (Layer 2
+    dynamic control). Other modes keep the generic zip/insurance/service flow.
+    """
+    if _eligibility_ready(session):
         return _eligibility_wording(session)
     if progressed:
         session.clarification_attempts = 0
     else:
         # Only turns with zero extraction progress count as clarifications.
         session.clarification_attempts += 1
+    if session.mode is CallerMode.PROVIDER:
+        question = _provider_structured_question(session)
+        if question is not None:
+            return question
     return _missing_field_question(session)
 
 

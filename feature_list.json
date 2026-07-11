@@ -610,7 +610,7 @@
       "Verify collected fields accumulate in the call state across turns. Expected result: the command/check completes successfully with no blocking errors.",
       "Simulated call test reaches a real-time ACCEPT/DECLINE/NEEDS_MORE_INFO before hangup. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 46,

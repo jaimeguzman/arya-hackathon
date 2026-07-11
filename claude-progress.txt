@@ -1,3 +1,46 @@
+=== Session 11 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (146 passed).
+2. Feature #45 (provider mode: clinical structured intake + real-time
+   mid-call eligibility) IMPLEMENTED, VERIFIED, marked passing:
+   - NEW app/agents/provider_intake.py: deterministic extraction of
+     patient name / DOB / diagnosis (ICD-10 code or spoken description
+     resolved against data/reference/icd10_top30_home_health.json),
+     diagnosis -> service_type mapping (reference dataset, no dependency
+     on the other agent's uncommitted eligibility_agent changes), and
+     build_eligibility_request() — the tokenization boundary: keyword-only
+     structured fields; no parameter exists for name/DOB, and
+     diagnosis_code is passed through only when EligibilityRequest
+     supports it (compat with both committed and in-flight versions).
+   - routes/twilio.py: CallSession gains patient_name/patient_dob/
+     diagnosis_code; _extract_fields collects them every turn (fields
+     accumulate regardless of ordering); _provider_turn now runs the
+     provider-mode structured question order (name -> DOB -> diagnosis ->
+     insurance -> zip) and speaks the eligibility decision the moment
+     zip + insurance + (service or diagnosis) are complete (Layer 2);
+     _eligibility_wording routes through build_eligibility_request.
+   - NEW tests/test_provider_intake.py: 12 tests covering all 9 feature
+     steps (structured order, mid-call decision, ACCEPT+F2F document ask,
+     honest DECLINE, NEEDS_MORE_INFO specifics, tokenized-only request
+     with captured-request assertion, banned-phrase filter on every
+     reply, accumulation, simulated call to decision).
+   - Suite: 158 passed; safety gate 30 passed.
+
+Status: 22/115 features passing.
+
+Notes:
+- Foreign uncommitted work still in tree (eligibility_agent.py,
+  knowledge_graph.py, live_sources.py, several .md files) — untouched,
+  staged explicit paths only. WORKFLOW.md progress-table sync deferred
+  because the file carries the other agent's uncommitted edits.
+
+Recommended next work:
+- Feature #46 (family mode) then #47 (patient mode, needs a dedicated
+  prompt file in ai-agents/voice-agent + MODE_PROMPT_FILES update).
+
 === Session 10 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
