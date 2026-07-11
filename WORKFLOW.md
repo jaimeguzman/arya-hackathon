@@ -19,15 +19,16 @@ This section is a point-in-time status snapshot, not an evergreen part of the wo
 | Component | Status | Evidence |
 |---|---|---|
 | **Data layer** (PostgreSQL schema, Neo4j constraints, Redis, seed data, loader script, DB connection utils) | ✅ Done | `local/` — docker-compose, `postgres_init.sql` (12 tables), `neo4j_seed.cypher`, `sample_data.py` loader, `database.py` (SQLAlchemy async + Neo4j + Redis clients), `config.py`. Verified per git log ("phase-1: verify all databases connected and seeded") |
-| **Orchestrator (LangGraph)** (Task 4) | ✅ Done (offline, against stubs) | `local/backend/orchestrator/` — `graph.py` (`intake_received → check_eligibility → decide → followup_{accept,decline,needs_info} → END`), `state.py`, `eligibility.py` (contract + stub), `demo.py`. 9 tests green. Runs with no DB/Twilio. |
-| **Follow-up Agent** (Task 4) | ✅ Done (offline, against stubs) | `local/backend/followup/` — `agent.py` (decision→action + bounded retry/escalation, must-have.md #6), `notifications.py` (Twilio contract + stub). 9 tests green. |
+| **Orchestrator (LangGraph)** (Task 4) | ✅ Done | `local/backend/orchestrator/` — `graph.py` (`intake_received → check_eligibility → decide → followup_{accept,decline,needs_info} → END`), `state.py`, `eligibility.py`, `demo.py`. Runs with no DB/Twilio (JSON fallback). |
+| **Eligibility ↔ Orchestrator connection** (Task 3 + Task 4) | ✅ Done | The team's deterministic `check_eligibility()` core (vendored to `local/backend/orchestrator/eligibility_core.py` from `develop:apis/api_intake/app/safety/eligibility.py`) is now driven by a real data-fetch layer (`eligibility_data.py` — Postgres+Neo4j queries with JSON fallback) via `RealEligibilityClient`, injected as the graph's default. 25 orchestrator+followup tests green offline. |
+| **Follow-up Agent** (Task 4) | ✅ Done (against stubs) | `local/backend/followup/` — `agent.py` (decision→action + bounded retry/escalation, must-have.md #6), `notifications.py` (Twilio contract + stub). |
 
 ### What's pending
 
 | Component | Status |
 |---|---|
 | FastAPI backend skeleton (health check, WebSocket stub) | ❌ Not started |
-| Eligibility Agent (`check_eligibility()`, Neo4j+Postgres traversal, ACCEPT/DECLINE/NEEDS_MORE_INFO) | ⏳ Contract defined by Task 4 (`local/backend/orchestrator/eligibility.py` — `EligibilityClient`); real Neo4j+Postgres traversal not built. Drop-in via `build_graph(eligibility_client=...)`. |
+| Eligibility Agent | ✅ Connected — see "Eligibility ↔ Orchestrator connection" above. Deterministic decision core + Postgres/Neo4j data-fetch layer (`eligibility_data.py`) with JSON fallback. Real DB path needs Docker up to verify live; JSON path verified offline. A `POST /eligibility-check` HTTP endpoint is still not exposed (orchestrator calls it in-process). |
 | Document Pipeline (7 layers) | ❌ Not started — test fixtures exist (`data/synthetic/referral_faxes/`, 3 real fax PDFs), no extraction/validation/correction code |
 | Voice Agent (Twilio ConversationRelay, consent gather, tokenize/rehydrate, banned-phrase filter, provider/family/outbound modes) | ❌ Not started |
 | Twilio wiring for Follow-up Agent | ⏳ Contract defined by Task 4 (`local/backend/followup/notifications.py` — `NotificationClient`); real Twilio client not built. Drop-in via `FollowUpAgent(notifier=...)`. |

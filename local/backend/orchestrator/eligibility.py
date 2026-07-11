@@ -19,6 +19,12 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Optional, Protocol, runtime_checkable
 
+from backend.orchestrator.eligibility_core import check_eligibility
+from backend.orchestrator.eligibility_data import (
+    EligibilityDataProvider,
+    FallbackDataProvider,
+)
+
 
 class EligibilityStatus(str, Enum):
     ACCEPT = "ACCEPT"
@@ -148,4 +154,64 @@ class StubEligibilityClient:
             caregiver_ok=True,
             missing_documents=missing_docs,
             reasons=["Service area, insurance, and a matching caregiver are available"],
+        )
+
+
+# --------------------------------------------------------------------------- #
+# REAL client — the team's deterministic core + the DB/JSON data-fetch layer.  #
+# This is the seamless connection between Task 3 (eligibility) and Task 4       #
+# (orchestrator): the graph injects this and gets real, domain-grounded        #
+# decisions with no code change to the graph itself.                           #
+# --------------------------------------------------------------------------- #
+class RealEligibilityClient:
+    """Fetches the facts (served zips, accepted plans, caregiver availability)
+    from `data_provider`, feeds them to the team's deterministic
+    `check_eligibility()` core, and maps the verdict onto the orchestrator's
+    `EligibilityResult`. Also computes `missing_documents` (the core returns
+    only status + reasons; gap-chasing is the orchestrator's concern)."""
+
+    def __init__(self, data_provider: Optional[EligibilityDataProvider] = None) -> None:
+        # default: DB-backed with automatic JSON fallback when the DB is down
+        self._data: EligibilityDataProvider = data_provider or FallbackDataProvider()
+
+    async def check(
+        self,
+        *,
+        zip_code: Optional[str],
+        payer: Optional[str],
+        plan: Optional[str],
+        service_type: Optional[str],
+        diagnosis_code: Optional[str] = None,
+        provided_documents: Optional[list[str]] = None,
+    ) -> EligibilityResult:
+        provided = set(provided_documents or [])
+        served = await self._data.served_zips()
+        accepted = await self._data.accepted_plans()
+        available = await self._data.caregivers_available(
+            service_type=service_type, zip_code=zip_code
+        )
+
+        core = check_eligibility(
+            patient_zip=zip_code,
+            insurance_plan=plan,
+            service_area_zips=served,
+            accepted_plans=accepted,
+            caregivers_available=available,
+        )
+
+        status = EligibilityStatus(core.status.value)
+        missing_docs: list[str] = []
+        if status is EligibilityStatus.ACCEPT:
+            required = await self._data.required_documents(
+                plan=plan, service_type=service_type
+            )
+            missing_docs = [d for d in required if d not in provided]
+
+        return EligibilityResult(
+            status=status,
+            reasons=list(core.reasons),
+            zip_ok=bool(zip_code) and zip_code in served,
+            payer_ok=bool(plan) and plan in accepted,
+            caregiver_ok=available,
+            missing_documents=missing_docs,
         )
