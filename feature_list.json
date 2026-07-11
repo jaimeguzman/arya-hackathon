@@ -404,7 +404,7 @@
       "Verify extraction returns fields with per-field values from the image. Expected result: the command/check completes successfully with no blocking errors.",
       "Test with a scanned sample page asserts non-empty structured output (mockable in CI). Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 32,

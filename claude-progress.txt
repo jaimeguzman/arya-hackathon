@@ -1,3 +1,40 @@
+=== Session 18 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (215 passed).
+2. Feature #31 (Layer 3 Path C - Gemini vision extraction) IMPLEMENTED,
+   VERIFIED, marked passing:
+   - NEW app/pipeline/extraction_vision.py: extract_fields_from_image()
+     sends the page image + a data-free JSON extraction prompt through the
+     single tokenizing LLM wrapper (safety.llm_gateway.call_llm); the image
+     is bound into the transport so the prompt still passes the identifier
+     scan. parse_vision_response() handles fenced/plain JSON, normalizes
+     fields (payer format matched via match_member_id_payer), raises
+     VisionExtractionError on non-JSON. extract_image_page_fields() routes
+     only scanned-image IngestedPages; extraction_path='vision'.
+   - safety/llm_gateway.py: added make_vision_transport(image_bytes, model)
+     so the Gemini SDK stays in the single sanctioned import site (the
+     test_no_other_module_imports_llm_sdk guard enforced this).
+   - NEW tests/test_pipeline_extraction_vision.py: 7 tests - gateway routing
+     with identifier-free prompt, per-field values, fenced JSON, null
+     defaults, non-JSON error, image-page-only routing, REF-1003 scanned
+     sample end-to-end with mocked transport.
+   - Full suite: 222 passed. Transport fully mockable - no network in CI.
+
+Status: 30/115 features passing.
+
+Recommended next work:
+- Feature #32 (Layer 4 convergence): VisionExtractedFields and
+  RuleExtractedFields already share field names + extraction_path;
+  normalize both to one per-page schema and assert schema equality.
+- Then #33 (Layer 5 Validation Agent) - reference tables live in
+  data/reference/.
+- Foreign-dirty files unchanged: still avoid routes/twilio.py,
+  eligibility_agent.py, WORKFLOW.md, etc. (session 12 list).
+- infra features #1/#4/#5 still blocked on Docker Desktop.
+
 === Session 17 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize

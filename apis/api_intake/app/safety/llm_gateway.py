@@ -81,6 +81,35 @@ def _default_transport(payload: str) -> str:
     return response.text
 
 
+def make_vision_transport(
+    image_bytes: bytes, model: str, mime_type: str = "image/png"
+) -> Callable[[str], str]:
+    """Build a transport that sends an image alongside the scanned prompt.
+
+    Lives here because this module is the single sanctioned Gemini SDK
+    import site. The returned callable is passed to `call_llm`, so the
+    text prompt still goes through the identifier scan.
+    """
+
+    def transport(payload: str) -> str:
+        from google import genai  # noqa: PLC0415 — single sanctioned import site
+        from google.genai import types  # noqa: PLC0415
+
+        from app.config import get_settings
+
+        client = genai.Client(api_key=get_settings().gemini_api_key)
+        response = client.models.generate_content(
+            model=model,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                payload,
+            ],
+        )
+        return response.text
+
+    return transport
+
+
 def call_llm(
     payload: str,
     token_map: dict[str, str] | None = None,
