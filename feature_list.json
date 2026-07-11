@@ -85,7 +85,7 @@
     "description": ".env.example documenting every required environment variable",
     "spec_reference": "technology_stack",
     "steps": [
-      "Verify .env.example lists DATABASE_URL, NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, REDIS_URL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, GEMINI_API_KEY, PUBLIC_BASE_URL (ngrok). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify .env.example lists DATABASE_URL, NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, REDIS_URL, ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, ELEVENLABS_PHONE_NUMBER_ID, ELEVENLABS_WEBHOOK_SECRET, GEMINI_API_KEY, PUBLIC_BASE_URL (ngrok). Expected result: the command/check completes successfully with no blocking errors.",
       "Verify no real secret values appear in .env.example and no .env file is committed. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -133,7 +133,7 @@
     "id": 11,
     "category": "functional",
     "app": "apis",
-    "description": "Safety guarantee 1: fake data only \u2014 is_synthetic enforced on every DB write",
+    "description": "Safety guarantee 1: fake data only — is_synthetic enforced on every DB write",
     "spec_reference": "safety_requirements/guarantee 1",
     "steps": [
       "Verify the DB write layer hard-asserts is_synthetic is true and raises on any record missing or false. Expected result: the command/check completes successfully with no blocking errors.",
@@ -206,7 +206,7 @@
     "id": 16,
     "category": "functional",
     "app": "apis",
-    "description": "Safety guarantee 6: no silent call drop \u2014 every failure degrades to human handoff",
+    "description": "Safety guarantee 6: no silent call drop — every failure degrades to human handoff",
     "spec_reference": "safety_requirements/guarantee 6",
     "steps": [
       "Verify every call turn is wrapped in a try/except boundary routing exceptions, timeouts, and clarification_attempts threshold breaches to the handoff path. Expected result: the command/check completes successfully with no blocking errors.",
@@ -359,7 +359,7 @@
     "id": 28,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 1 \u2014 Ingestion and preprocessing: PDF/TIFF standardization and page cleanup",
+    "description": "Layer 1 — Ingestion and preprocessing: PDF/TIFF standardization and page cleanup",
     "spec_reference": "document_pipeline/layer 1",
     "steps": [
       "Verify uploads of PDF and TIFF are standardized to per-page images/text with deskew/denoise/contrast steps applied. Expected result: the command/check completes successfully with no blocking errors.",
@@ -372,7 +372,7 @@
     "id": 29,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 2 \u2014 Page classification into document types",
+    "description": "Layer 2 — Page classification into document types",
     "spec_reference": "document_pipeline/layer 2",
     "steps": [
       "Verify each page is classified as one of: physician order, face-to-face note, discharge summary, medication list, insurance card, lab results, consent form, fax cover sheet. Expected result: the command/check completes successfully with no blocking errors.",
@@ -385,7 +385,7 @@
     "id": 30,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 3 Path B \u2014 rule-based extraction for digital-text PDFs (Docling + regex)",
+    "description": "Layer 3 Path B — rule-based extraction for digital-text PDFs (Docling + regex)",
     "spec_reference": "document_pipeline/layer 3",
     "steps": [
       "Verify Docling parses text layers and regex/keyword rules extract patient name (after 'Patient:'/'Name:'), ICD codes (letter+digits), member IDs by payer format, NPI (10 digits). Expected result: the command/check completes successfully with no blocking errors.",
@@ -397,7 +397,7 @@
     "id": 31,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 3 Path C \u2014 Gemini vision extraction for image pages",
+    "description": "Layer 3 Path C — Gemini vision extraction for image pages",
     "spec_reference": "document_pipeline/layer 3",
     "steps": [
       "Verify image pages route to the Gemini Flash vision extractor through the single tokenizing LLM wrapper. Expected result: the command/check completes successfully with no blocking errors.",
@@ -410,7 +410,7 @@
     "id": 32,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 4 \u2014 Both paths converge into standardized raw JSON per page",
+    "description": "Layer 4 — Both paths converge into standardized raw JSON per page",
     "spec_reference": "document_pipeline/layer 4",
     "steps": [
       "Verify rules-path and vision-path outputs normalize to the same schema including extraction_path (rules/vision) per field. Expected result: the command/check completes successfully with no blocking errors.",
@@ -422,7 +422,7 @@
     "id": 33,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 5 \u2014 Validation Agent: ICD-10, NPI Luhn+NPPES, member ID format, dates, zip, dosage ranges",
+    "description": "Layer 5 — Validation Agent: ICD-10, NPI Luhn+NPPES, member ID format, dates, zip, dosage ranges",
     "spec_reference": "document_pipeline/layer 5",
     "steps": [
       "Verify ICD-10 codes are validated against the reference table. Expected result: the command/check completes successfully with no blocking errors.",
@@ -442,7 +442,7 @@
     "id": 34,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 5 \u2014 Correction Agent: reasons about validation failures with confidence tiers",
+    "description": "Layer 5 — Correction Agent: reasons about validation failures with confidence tiers",
     "spec_reference": "document_pipeline/layer 5",
     "steps": [
       "Verify 'M17.1I' is auto-corrected to 'M17.11' with high confidence. Expected result: the command/check completes successfully with no blocking errors.",
@@ -456,7 +456,7 @@
     "id": 35,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 5 \u2014 Cross-Reference Agent: consistency across pages",
+    "description": "Layer 5 — Cross-Reference Agent: consistency across pages",
     "spec_reference": "document_pipeline/layer 5",
     "steps": [
       "Verify mismatched patient name/DOB across documents is flagged. Expected result: the command/check completes successfully with no blocking errors.",
@@ -470,7 +470,7 @@
     "id": 36,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 6 \u2014 Completeness check against the requirements checklist with gap generation",
+    "description": "Layer 6 — Completeness check against the requirements checklist with gap generation",
     "spec_reference": "document_pipeline/layer 6",
     "steps": [
       "Verify the checklist covers demographics, signed physician orders, face-to-face documentation, insurance info, diagnosis+ICD, homebound status, medication list. Expected result: the command/check completes successfully with no blocking errors.",
@@ -483,7 +483,7 @@
     "id": 37,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 7 \u2014 Confidence scoring and routing (HIGH/MEDIUM/LOW)",
+    "description": "Layer 7 — Confidence scoring and routing (HIGH/MEDIUM/LOW)",
     "spec_reference": "document_pipeline/layer 7",
     "steps": [
       "Verify HIGH (rules+validated+cross-confirmed) auto-populates the intake record. Expected result: the command/check completes successfully with no blocking errors.",
@@ -524,14 +524,14 @@
     "id": 40,
     "category": "agent",
     "app": "apis",
-    "description": "Twilio ConversationRelay WebSocket handler at /twilio/conversation-relay",
+    "description": "ElevenLabs voice call path: Custom LLM endpoint handling every conversation turn (replaces the Twilio ConversationRelay handler per docs/ELEVENLABS_MIGRATION.md)",
     "spec_reference": "technology_stack/telephony",
     "steps": [
-      "Verify the WebSocket endpoint accepts ConversationRelay setup, prompt, and interrupt message types. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify TwiML/voice webhook configuration connects the Twilio number to the WebSocket URL (PUBLIC_BASE_URL). Expected result: the command/check completes successfully with no blocking errors.",
-      "Integration test with a simulated ConversationRelay client completes a message round-trip. Expected result: the command/check completes successfully with no blocking errors."
+      "Verify POST /elevenlabs/custom-llm accepts ElevenLabs Custom LLM turn requests and returns the agent's next utterance. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the ElevenLabs agent configuration points the Custom LLM endpoint at PUBLIC_BASE_URL so every turn passes through the backend. Expected result: the command/check completes successfully with no blocking errors.",
+      "Integration test with a simulated ElevenLabs client completes a turn round-trip. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": true
+    "passes": false
   },
   {
     "id": 41,
@@ -558,7 +558,7 @@
       "Verify early-turn classification assigns provider, family, or patient mode from caller statements. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify the mode selects the corresponding static system prompt (Layer 1 control) and is persisted as call.mode in Redis. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify a caller who self-identifies ('I'm the discharge planner', 'I'm his daughter', 'I need care for myself') maps to the correct mode. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify inbound is never routed to Outbound mode \u2014 Outbound is reserved for agency-initiated calls carrying a mission parameter. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify inbound is never routed to Outbound mode — Outbound is reserved for agency-initiated calls carrying a mission parameter. Expected result: the command/check completes successfully with no blocking errors.",
       "Tests assert each mode is selected from representative utterances for provider, family, and patient. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": true
@@ -659,7 +659,7 @@
     "spec_reference": "agent_architecture/safety_gated_call_flow",
     "steps": [
       "Verify each caller turn updates call:{call_sid} in Redis with collected fields and remaining questions. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify only structured, tokenized fields (zip, payer, service type) are sent to eligibility \u2014 never names. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify only structured, tokenized fields (zip, payer, service type) are sent to eligibility — never names. Expected result: the command/check completes successfully with no blocking errors.",
       "Test asserts incremental field accumulation across turns. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -722,7 +722,7 @@
     "spec_reference": "agent_architecture/core_principle",
     "steps": [
       "Verify a LangGraph graph models referral received -> document processing -> eligibility -> decision -> follow-up. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify the orchestrator never calls Twilio, never parses documents, and never queries databases directly \u2014 only routes to sub-agents. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the orchestrator never calls the telephony provider (ElevenLabs), never parses documents, and never queries databases directly — only routes to sub-agents. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit test drives a referral through the full state sequence. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -795,11 +795,11 @@
     "id": 60,
     "category": "agent",
     "app": "services",
-    "description": "Follow-up Agent: SMS confirmations via Twilio Programmable SMS",
+    "description": "Follow-up Agent: confirmation via ElevenLabs outbound call (replaces Twilio SMS per docs/ELEVENLABS_MIGRATION.md)",
     "spec_reference": "core_features/outbound_follow_up",
     "steps": [
-      "Verify POST /follow-up/sms sends a confirmation SMS with referral ID through Twilio (mockable client). Expected result: the endpoint returns the documented status code and JSON shape.",
-      "Verify the send is logged in follow_up_events with result. Expected result: the command/check completes successfully with no blocking errors."
+      "Verify POST /follow-up/confirmation-call initiates an ElevenLabs outbound confirmation call referencing the referral ID (mockable client). Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify the attempt is logged in follow_up_events with result (answered / voicemail / no-answer). Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
   },
@@ -836,7 +836,7 @@
     "description": "Outbound call trigger re-enters the safety-gated flow",
     "spec_reference": "core_features/outbound_follow_up",
     "steps": [
-      "Verify POST /follow-up/outbound-call initiates a Twilio outbound call whose flow starts at the consent node. Expected result: the endpoint returns the documented status code and JSON shape.",
+      "Verify POST /follow-up/outbound-call initiates an ElevenLabs outbound call whose flow starts at the consent node. Expected result: the endpoint returns the documented status code and JSON shape.",
       "Verify there is no separate unguarded outbound path in the codebase. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -860,8 +860,8 @@
     "description": "Scheduler worker service processing the Redis retry queue",
     "spec_reference": "repository_structure",
     "steps": [
-      "Verify a services/ worker polls retry_queue and dispatches due follow-ups (call, SMS, escalation). Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify Twilio rate limits are respected via the Redis rate-limit keys. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a services/ worker polls retry_queue and dispatches due follow-ups (outbound call, confirmation call, escalation). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify ElevenLabs rate limits are respected via the Redis rate-limit keys. Expected result: the command/check completes successfully with no blocking errors.",
       "Test with a fake clock asserts due items are dispatched exactly once. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -987,10 +987,10 @@
     "id": 76,
     "category": "api",
     "app": "apis",
-    "description": "Twilio webhook signature validation on inbound HTTP webhooks",
+    "description": "ElevenLabs webhook/Custom-LLM signature validation on inbound HTTP requests",
     "spec_reference": "success_criteria/judging_alignment security",
     "steps": [
-      "Verify inbound Twilio webhooks validate the X-Twilio-Signature header and reject invalid signatures with 403. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify inbound ElevenLabs requests validate the HMAC signature header against ELEVENLABS_WEBHOOK_SECRET and reject invalid signatures with 403. Expected result: the command/check completes successfully with no blocking errors.",
       "Test with a forged signature asserts rejection. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -1312,11 +1312,11 @@
     "id": 103,
     "category": "functional",
     "app": "infra",
-    "description": "Twilio number + ConversationRelay + ngrok wiring documented and scriptable",
+    "description": "ElevenLabs agent + phone number + ngrok wiring documented and scriptable",
     "spec_reference": "technology_stack/infrastructure",
     "steps": [
-      "Verify infra contains a setup script/README section wiring the Twilio number's voice webhook to PUBLIC_BASE_URL. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify starting the tunnel and updating the webhook is a single documented command sequence. Expected result: the command/check completes successfully with no blocking errors."
+      "Verify infra contains a setup script/README section wiring the ElevenLabs agent's Custom LLM endpoint and webhooks to PUBLIC_BASE_URL. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify starting the tunnel and updating the agent configuration is a single documented command sequence. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
   },
@@ -1327,13 +1327,13 @@
     "description": "E2E flow 1: discharge planner call from hello to done",
     "spec_reference": "workflows/flow Discharge planner calls",
     "steps": [
-      "Start the stack and open a simulated ConversationRelay session in PROVIDER mode. Expected result: the command/check completes successfully with no blocking errors.",
+      "Start the stack and open a simulated ElevenLabs Custom LLM session in PROVIDER mode. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify the consent disclosure is the first utterance and 'yes' is logged. Expected result: the command/check completes successfully with no blocking errors.",
       "Provide referral details (name, DOB, diagnosis, insurance, zip) across turns. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify mid-call eligibility runs and returns ACCEPT with a missing F2F note. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify the spoken response passes the banned-phrase filter and asks for the F2F documentation specifically. Expected result: the command/check completes successfully with no blocking errors.",
       "End the call and verify an intake record exists with status PENDING_DOCUMENTS. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify an SMS confirmation with the referral ID was sent (mock Twilio). Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify a confirmation follow-up call was initiated with the referral ID (mock ElevenLabs client). Expected result: the command/check completes successfully with no blocking errors.",
       "Verify a gap follow-up is scheduled in 4 hours in the retry queue. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify the full transcript and consent flag are persisted. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify audit_trail contains the eligibility decision with its inputs. Expected result: the command/check completes successfully with no blocking errors.",
@@ -1417,7 +1417,7 @@
     "spec_reference": "workflows/situation_handling",
     "steps": [
       "Force an exception during a simulated call turn. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify the caller hears the fallback ('Let me connect you with a coordinator') \u2014 never silence. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the caller hears the fallback ('Let me connect you with a coordinator') — never silence. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify a handoff (transfer or scheduled callback) is logged and visible in the dashboard. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -1490,7 +1490,7 @@
     "spec_reference": "implementation_steps/prework",
     "steps": [
       "Run ./init.sh on a clean checkout and verify databases start, migrations/seeds apply, backend and frontend start. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify the script prints the URLs for API, dashboard, and Neo4j browser plus next steps for ngrok/Twilio. Expected result: the command/check completes successfully with no blocking errors."
+      "Verify the script prints the URLs for API, dashboard, and Neo4j browser plus next steps for ngrok/ElevenLabs. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
   }

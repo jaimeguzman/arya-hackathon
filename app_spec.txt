@@ -5,7 +5,7 @@
     Build IntakeAI, an intelligent patient intake agent that ensures a home health agency never
     misses a patient because nobody picked up the phone, and never loses a patient because they
     were too slow to respond. The system handles the entire intake workflow from referral received
-    to patient admitted — across 24/7 voice calls, fax/PDF processing, SMS, and email — with
+    to patient admitted — across 24/7 voice calls (inbound and outbound), fax/PDF processing, and email — with
     real-time eligibility checking grounded in a knowledge graph, a 7-layer document extraction
     pipeline with an agentic validation-correction loop, caller personalization, and a real-time
     intake dashboard. Built by a 4-developer team in a one-day hackathon sprint (AI Healthcare
@@ -16,8 +16,10 @@
     <official_rules>
       These are hard constraints from the organizers' brief (see PROJECT.md "Official Challenge
       Brief") — non-negotiable, they override convenience and scope creep:
-      - Twilio is MANDATORY for telephony. No sponsor-prize eligibility without it. Never use
-        another voice/SMS provider as the primary channel.
+      - ElevenLabs Agents is the telephony/voice platform. TEAM DECISION 2026-07-11
+        (docs/ELEVENLABS_MIGRATION.md): migrated from Twilio, knowingly forgoing Twilio
+        sponsor-prize eligibility. Follow-ups use ElevenLabs outbound calls instead of SMS.
+        Do not re-introduce Twilio without an explicit new team decision.
       - The demo must be a FULL end-to-end conversation ("hello to done") for a real healthcare
         workflow — not a partial flow or a mocked segment.
       - Reliability, guardrails, security, and scalability are prerequisites, not stretch goals.
@@ -75,15 +77,15 @@
       <document_parsing>Docling (text-layer PDFs) + Gemini Flash vision (image PDFs)</document_parsing>
     </backend>
     <telephony>
-      <voice>Twilio ConversationRelay (WebSocket, streaming STT/TTS)</voice>
-      <sms>Twilio Programmable SMS</sms>
-      <speech>Twilio-integrated STT/TTS (or Deepgram/ElevenLabs via ConversationRelay)</speech>
-      <note>Twilio is mandatory for prize eligibility — no substitutes</note>
+      <voice>ElevenLabs Agents Platform (inbound + outbound calls, native STT/TTS)</voice>
+      <llm_integration>ElevenLabs Custom LLM endpoint pointing at our FastAPI backend, so every turn passes through the tokenize/rehydrate gateway and banned-phrase filter</llm_integration>
+      <follow_ups>ElevenLabs outbound calls (replaces SMS per docs/ELEVENLABS_MIGRATION.md)</follow_ups>
+      <note>ElevenLabs replaces Twilio per team decision 2026-07-11 — no Twilio code paths in new work</note>
     </telephony>
     <databases>
       <postgresql>Operational data: intake records, caregiver roster, service areas, insurance contracts, transcripts, audit trails, reference tables (JSONB for extraction output). ACID transactions prevent double-accepting a patient.</postgresql>
       <neo4j>Knowledge graph: 13 node types, 14 relationship types. Eligibility check is a 6-hop path traversal (diagnosis -> service type -> certification -> caregiver -> service area, cross-checked against insurance coverage).</neo4j>
-      <redis>Ephemeral state: document pipeline layer state, live call state, eligibility result caching, retry scheduling, Twilio rate limiting.</redis>
+      <redis>Ephemeral state: document pipeline layer state, live call state, eligibility result caching, retry scheduling, telephony (ElevenLabs) rate limiting.</redis>
       <pgvector>PostgreSQL extension for fuzzy matching: insurance plan names, medication name variants, physician names. pg_trgm may suffice for hackathon scope.</pgvector>
     </databases>
     <frontend>
@@ -91,8 +93,8 @@
     </frontend>
     <infrastructure>
       <local>Docker Compose: PostgreSQL + pgvector, Neo4j, Redis, FastAPI, React dev server</local>
-      <tunnel>ngrok — Twilio needs a public webhook URL to reach the local FastAPI WebSocket server</tunnel>
-      <external>Twilio, Gemini Flash API, NPPES NPI Registry API (free, no auth), RxNorm API (free)</external>
+      <tunnel>ngrok — ElevenLabs needs a public URL to reach the local FastAPI backend (Custom LLM endpoint + webhooks)</tunnel>
+      <external>ElevenLabs, Gemini Flash API, NPPES NPI Registry API (free, no auth), RxNorm API (free)</external>
     </infrastructure>
   </technology_stack>
 
@@ -137,7 +139,7 @@
     </core_principle>
     <sub_agents>
       <voice_agent>
-        The mouth and ears. Handles phone calls via Twilio ConversationRelay. Listens, speaks,
+        The mouth and ears. Handles phone calls via ElevenLabs Agents (Custom LLM integration). Listens, speaks,
         extracts structured data from caller speech. Does NOT make decisions — reports to the
         orchestrator and follows its instructions. Two layers of control:
         - Layer 1 (static): scenario-based system prompt assigned before the call — Provider mode
@@ -237,7 +239,7 @@
   <core_features>
     <inbound_call_handling>
       <!-- Feature 1: 24/7 — must-have, very high impact, core value prop -->
-      - Twilio number always answered by the AI agent — nights, weekends, holidays
+      - ElevenLabs number always answered by the AI agent — nights, weekends, holidays
       - Caller type detection (provider vs family vs patient) with adaptive conversation flow
       - Provider calls: structured clinical intake, real-time eligibility check during the call,
         immediate accept/decline/need-more-info, specific ask for missing documents, SMS/email
@@ -415,14 +417,15 @@
       - call:{call_sid}: collected data, remaining questions, clarification_attempts counter
       - eligibility_cache:{zip}:{payer}:{plan}: cached check results (short TTL)
       - retry_queue: scheduled callbacks and follow-ups
-      - rate limits for Twilio calls
+      - rate limits for ElevenLabs calls
     </redis>
   </database_schema>
 
   <api_endpoints_summary>
     <core>
       - GET /health — service health checks
-      - WS /twilio/conversation-relay — Twilio ConversationRelay WebSocket (voice)
+      - POST /elevenlabs/custom-llm — ElevenLabs Custom LLM endpoint (every voice turn, HMAC-validated)
+      - POST /elevenlabs/webhooks — ElevenLabs call lifecycle webhooks (HMAC-validated)
       - POST /eligibility-check — returns ACCEPT / DECLINE / NEEDS_MORE_INFO with reasons
       - POST /process-document — runs the 7-layer pipeline, returns structured JSON with gaps
     </core>
@@ -433,7 +436,7 @@
       - GET /intakes/:id/transcript — call transcripts
     </intake>
     <follow_up>
-      - POST /follow-up/sms — send confirmation SMS via Twilio
+      - POST /follow-up/confirmation-call — confirmation via ElevenLabs outbound call
       - POST /follow-up/outbound-call — trigger safety-gated outbound call
       - POST /follow-up/schedule — schedule retry/callback
     </follow_up>
@@ -446,7 +449,7 @@
 
   <workflows>
     <flow name="Discharge planner calls">
-      1. Phone rings -> Twilio routes to WebSocket server -> Voice Agent picks up in PROVIDER MODE
+      1. Phone rings -> ElevenLabs agent answers, every turn routed to our backend (Custom LLM) -> Voice Agent picks up in PROVIDER MODE
       2. Consent gather first: "This call may be recorded and is handled by an AI system. Is that okay?"
          No -> human transfer or graceful end. Yes -> logged, proceed.
       3. Planner gives referral details -> Voice Agent extracts (name, DOB, diagnosis, insurance, zip)
@@ -517,7 +520,7 @@
     - apis/         FastAPI app, HTTP/WebSocket endpoints, LangGraph orchestrator wiring
     - apps/         React intake dashboard
     - services/     Scheduler / follow-up workers (retries, callbacks, escalations via Redis)
-    - infra/        Docker Compose, PostgreSQL migrations, Neo4j Cypher seeds, Twilio setup, .env reference
+    - infra/        Docker Compose, PostgreSQL migrations, Neo4j Cypher seeds, ElevenLabs setup, .env reference
     - data/         Reference + synthetic seed data (ICD-10 subset, mappings, payer rules, roster, sample referrals)
     - docs/         ARCHITECTURE.md (diagrams and flows)
     - PROJECT.md    Source of truth; must-have.md safety authority; WORKFLOW.md plain-English walkthrough
@@ -528,16 +531,16 @@
       Data prep and scaffolding only — zero application code: PROJECT.md and spec docs,
       PostgreSQL migration SQL, Neo4j Cypher seed scripts (ICD-10 subset, mappings, insurance
       rules), 3-4 sample referral PDFs of varying quality, caregiver roster JSON (20-30
-      caregivers), insurance rules JSON (5 payers), Twilio account + phone number, Docker
+      caregivers), insurance rules JSON (5 payers), ElevenLabs account + agent + phone number, Docker
       Compose file.
     </prework>
     <step number="1">
       <title>Phase 1 — Foundation (all 4 developers, hour 1)</title>
       <tasks>
-        - Person 1: FastAPI skeleton, health checks, WebSocket endpoint for Twilio
+        - Person 1: FastAPI skeleton, health checks, ElevenLabs Custom LLM + webhook endpoints
         - Person 2: document pipeline scaffolding (upload endpoint, processing queue)
         - Person 3: PostgreSQL schema migration + Neo4j seed data loading
-        - Person 4: Twilio ConversationRelay configuration, Redis setup
+        - Person 4: ElevenLabs agent + phone number configuration, Redis setup
       </tasks>
     </step>
     <step number="2">
@@ -562,7 +565,7 @@
     <step number="4">
       <title>Phase 4 — Voice Agent (Person 1, hours 2-3)</title>
       <tasks>
-        - Twilio ConversationRelay WebSocket handler; consent gather as literal first node
+        - ElevenLabs Custom LLM turn handler (HMAC-validated); consent gather as literal first node
         - Provider, family, and outbound conversation modes
         - Tokenize/rehydrate wrapper and banned-phrase filter (safety guarantees #2, #5)
         - Real-time extraction from caller speech; mid-call Eligibility Agent integration
@@ -575,7 +578,7 @@
         - LangGraph state machine: referral received -> document processing -> eligibility ->
           decision -> follow-up
         - Routing logic between pipeline, eligibility, and voice actions
-        - Follow-up Agent: Twilio SMS, email, retry scheduling, escalation after 3 attempts
+        - Follow-up Agent: ElevenLabs outbound confirmation calls, email, retry scheduling, escalation after 3 attempts
         - Merge logic: document + voice data into one unified intake record
       </tasks>
     </step>
@@ -590,7 +593,7 @@
       </tasks>
     </step>
     <demo_script>
-      1. Live inbound call from a discharge planner (judge calls the Twilio number, gets a
+      1. Live inbound call from a discharge planner (judge calls the ElevenLabs number, gets a
          real-time answer on the spot)
       2. Fax processing: upload a sample referral PDF, watch it move through 7 layers on the
          dashboard, confidence scores populate, gaps identified
@@ -603,7 +606,7 @@
 
   <success_criteria>
     <compliance_checklist>
-      - Telephony runs through Twilio (voice and/or SMS)
+      - Telephony runs through ElevenLabs Agents (inbound + outbound voice; Twilio sponsor-prize eligibility knowingly forgone per team decision 2026-07-11)
       - Demoed flow is a full conversation end-to-end ("hello to done"), not a fragment
       - Guardrails visibly enforced (no medical advice, no premature admission confirmation,
         escalation on low confidence)
@@ -612,7 +615,7 @@
       - Caller personalization demonstrable
       - Knowledge grounding demonstrable (ICD-10/Neo4j, not free-floating LLM guesses)
       - Everything shown was built during the sprint (pre-work = data/scaffolding only)
-      - Devpost submission complete: name + one-liner, problem/solution, tools (incl. Twilio
+      - Devpost submission complete: name + one-liner, problem/solution, tools (incl. ElevenLabs
         usage), team roles, live demo link
     </compliance_checklist>
     <safety>
@@ -624,7 +627,7 @@
       - Mid-call eligibility loop completes in 2-3 seconds (or uses natural filler speech)
       - Sample referral PDFs process through all 7 layers with correct gap detection
       - Correction Agent fixes seeded OCR errors (e.g., "M17.1I" -> "M17.11") with right confidence
-      - Outbound follow-up call and SMS confirmations fire automatically on gaps
+      - Outbound follow-up and confirmation calls fire automatically on gaps
       - Family-mode call never promises coverage; always schedules coordinator follow-up
     </functionality>
     <judging_alignment>
@@ -633,7 +636,7 @@
         HIPAA-appropriate boundaries, full audit trail
       - Security: synthetic data only, tokenized LLM calls, encrypted storage, no PHI in logs
       - Scalability: modular agents scale independently; parallel fax processing; concurrent
-        calls via Twilio; Redis caching prevents redundant checks
+        calls via ElevenLabs; Redis caching prevents redundant checks
       - Domain knowledge: real ICD-10 codes, live NPI validation, real Medicare coverage rules,
         knowledge graph — not an LLM guessing
       - Caller personalization: mode detection, referral source history, cross-interaction context
