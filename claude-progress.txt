@@ -1,3 +1,36 @@
+=== Session 14 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (170 passed).
+2. Feature #28 (pipeline Layer 1 - ingestion and preprocessing) IMPLEMENTED,
+   VERIFIED, marked passing:
+   - NEW app/pipeline/ package (7-layer document pipeline home, per
+     session-13 recommendation; avoids all foreign-dirty files).
+   - NEW app/pipeline/ingestion.py: ingest_document(path) standardizes
+     PDF/TIFF into per-page IngestedPage records; per-page text-layer
+     detection tags digital-text vs scanned-image (DIGITAL_TEXT_MIN_CHARS);
+     scanned pages rendered via PyMuPDF at RENDER_SCALE and cleaned with
+     deskew (projection-profile variance search), denoise (median filter),
+     and autocontrast; unsupported extensions / missing files rejected.
+   - NEW tests/test_pipeline_ingestion.py: 8 tests - sample clean PDF all
+     digital-text with page count 3, messy scanned fax all scanned-image
+     and cleaned, TIFF input, mixed-type PDF, deskew detects and corrects a
+     3-degree rotation, threshold classification, error paths.
+   - Deps added to requirements.txt: pymupdf, pillow (installed in
+     apis/.venv).
+   - Full suite: 178 passed.
+
+Status: 25/115 features passing.
+
+Recommended next work:
+- Feature #29 (Layer 2 page classification) builds directly on
+  IngestedPage; #30/#31/#32 follow. All stay inside app/pipeline/.
+- Foreign-dirty files unchanged: still avoid routes/twilio.py,
+  eligibility_agent.py, WORKFLOW.md, and other files listed in session 12.
+- infra features #1/#4/#5 still blocked on Docker Desktop.
+
 === Session 13 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize

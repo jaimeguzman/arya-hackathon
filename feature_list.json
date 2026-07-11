@@ -366,7 +366,7 @@
       "Verify each page is tagged scanned-image vs digital-text. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit test with a sample PDF asserts page count and per-page type detection. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 29,
