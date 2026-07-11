@@ -21,7 +21,7 @@ from typing import Any, Optional
 from langgraph.graph import END, StateGraph
 
 from backend.followup.agent import FollowUpAgent
-from backend.orchestrator.eligibility import EligibilityClient, StubEligibilityClient
+from backend.orchestrator.eligibility import EligibilityClient, RealEligibilityClient
 from backend.orchestrator.state import ReferralState
 
 
@@ -29,10 +29,14 @@ def build_graph(
     eligibility_client: Optional[EligibilityClient] = None,
     followup_agent: Optional[FollowUpAgent] = None,
 ):
-    """Compile and return the orchestrator graph. All dependencies default to
-    offline stubs, so `build_graph()` with no args is runnable anywhere."""
+    """Compile and return the orchestrator graph.
 
-    elig: EligibilityClient = eligibility_client or StubEligibilityClient()
+    Default eligibility client is the REAL one: the team's deterministic
+    `check_eligibility()` core fed by the DB-backed data layer (with automatic
+    JSON fallback when the DB is down). Pass a client explicitly to override
+    (e.g. StubEligibilityClient for a tiny hermetic fixture)."""
+
+    elig: EligibilityClient = eligibility_client or RealEligibilityClient()
     followup = followup_agent or FollowUpAgent()
 
     async def intake_received(state: ReferralState) -> dict[str, Any]:
