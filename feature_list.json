@@ -379,7 +379,7 @@
       "Verify fax cover sheets are marked junk and excluded from extraction. Expected result: the command/check completes successfully with no blocking errors.",
       "Test with a sample packet asserts expected classifications per page. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 30,

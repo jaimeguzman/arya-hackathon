@@ -1,3 +1,35 @@
+=== Session 15 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (178 passed).
+2. Feature #29 (pipeline Layer 2 - page classification) IMPLEMENTED,
+   VERIFIED, marked passing:
+   - NEW app/pipeline/classification.py: classify_page/classify_pages tag
+     each IngestedPage with one of the 8 spec document types via
+     case-insensitive keyword scoring (highest score wins, more specific
+     types listed first for ties). Fax cover sheets are is_junk=True and
+     pages_for_extraction() excludes them. Scanned pages with no text
+     layer are tagged 'unknown' (resolved later by the Layer 3 vision
+     path) and still flow to extraction.
+   - NEW tests/test_pipeline_classification.py: 6 tests - all 8 types
+     supported, representative text per type classifies correctly, cover
+     sheet junk + exclusion, sample packet REF-1001 asserts per-page
+     [cover_sheet, discharge_summary, physician_order], scanned no-text
+     page is unknown/not junk, no-keyword text is unknown.
+   - Full suite: 184 passed.
+
+Status: 26/115 features passing.
+
+Recommended next work:
+- Feature #30 (Layer 3 Path B rule-based extraction, Docling + regex) is
+  next in the pipeline; #31 (vision path) and #32 (Layer 4 convergence)
+  follow. All stay inside app/pipeline/.
+- Foreign-dirty files unchanged: still avoid routes/twilio.py,
+  eligibility_agent.py, WORKFLOW.md, and other files listed in session 12.
+- infra features #1/#4/#5 still blocked on Docker Desktop.
+
 === Session 14 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
