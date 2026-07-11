@@ -16,7 +16,7 @@ Rules for working inside the `apis/` folder. Inherits every rule from the root [
 
 ## Hard constraints (non-negotiable)
 
-- **Twilio is mandatory** for all telephony (voice and SMS). Never introduce another provider.
+- **ElevenLabs Agents is the telephony/voice platform** (team decision 2026-07-11, see [`../docs/ELEVENLABS_MIGRATION.md`](../docs/ELEVENLABS_MIGRATION.md)). Follow-ups use ElevenLabs outbound calls instead of SMS. Do not build new Twilio code paths; the existing `routes/twilio.py` stays only until decommission.
 - Reliability, guardrails, security, and scalability are prerequisites, not extras — do not cut them under time pressure without flagging it first.
 - **Never** modify `.env`, `.env.test`, `.env.local`, or `.env.prod`. The only editable env file is `.env.example`.
 - No hardcoded values, no magic numbers, no static/empty fallbacks. Configuration comes from environment.
