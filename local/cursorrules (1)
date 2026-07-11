@@ -1,0 +1,985 @@
+# IntakeAI — Intelligent Patient Intake Agent for Home Health Agencies
+# Hackathon: AI Healthcare Hack NYC (Arya Health × Twilio)
+# Build time: 5 hours, 4 engineers, Cursor
+
+## PROJECT CONTEXT
+
+This is a healthcare AI hackathon project. We are building an intelligent patient intake agent for home health agencies. The system handles the entire intake workflow — from receiving a patient referral (via phone call or fax) to making an admit/decline decision — using voice AI, document intelligence, and real-time eligibility checking.
+
+The core value proposition: home health agencies lose 36% of patient referrals because they're too slow to respond. Our system picks up the phone 24/7, processes faxes automatically, checks eligibility in real-time, and gives answers in minutes instead of hours.
+
+This is NOT a deployed production system. It runs locally with Docker Compose + ngrok for Twilio connectivity. But it must be demo-quality — judges will call the Twilio number live.
+
+---
+
+## TECH STACK
+
+### Backend
+- **Language:** Python 3.12
+- **Framework:** FastAPI (HTTP + WebSocket)
+- **Agent Orchestration:** LangGraph
+- **LLM:** Google Gemini Flash (via google-generativeai SDK)
+  - Used for: voice conversation reasoning, document entity extraction (vision), agentic validation/correction
+  - NOT Claude, NOT OpenAI — we use Gemini throughout
+- **Document Parsing:** Docling (text-layer PDFs) + Gemini Flash vision (image/scanned PDFs)
+- **Telephony:** Twilio ConversationRelay (voice), Twilio Programmable SMS, Twilio REST API (outbound calls)
+- **Tunneling:** ngrok (exposes local WebSocket server to Twilio as wss:// URL)
+
+### Databases
+- **PostgreSQL 16** — operational data, intake records, caregiver roster, insurance contracts, reference tables
+- **Neo4j 5** — knowledge graph (ICD-10 hierarchy, diagnosis→service→certification mappings, insurance coverage rules, medication interactions)
+- **Redis 7** — pipeline state, call state, eligibility caching, follow-up scheduling
+- **pgvector** (PostgreSQL extension) — fuzzy matching for insurance plan names, medication names (stretch goal — use pg_trgm first)
+
+### Frontend
+- **React 18** with Vite
+- **Tailwind CSS** for styling
+- **No complex state management** — React useState/useEffect is sufficient for 3 views
+
+### Infrastructure
+- **Docker Compose** — all services (PostgreSQL, Neo4j, Redis, FastAPI, React dev server)
+- **No cloud deployment** — everything runs locally, ngrok bridges to Twilio
+
+---
+
+## PROJECT STRUCTURE
+
+```
+intakeai/
+├── .cursorrules
+├── PROJECT.md
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+│
+├── backend/
+│   ├── main.py                          # FastAPI app entry point
+│   ├── requirements.txt
+│   ├── config.py                        # Environment variables, settings
+│   │
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── intake.py                    # Intake CRUD endpoints
+│   │   ├── documents.py                 # Document upload/status endpoints
+│   │   ├── eligibility.py               # Eligibility check endpoints
+│   │   ├── voice.py                     # Twilio webhooks, WebSocket handler
+│   │   ├── caregivers.py                # Caregiver matching endpoints
+│   │   └── followup.py                  # Follow-up action endpoints
+│   │
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── intake_service.py            # Intake record lifecycle logic
+│   │   ├── eligibility_service.py       # Neo4j traversal + PostgreSQL queries
+│   │   ├── caregiver_match_service.py   # Caregiver matching and ranking
+│   │   ├── document_service.py          # Document lifecycle management
+│   │   ├── guardrail_service.py         # Message validation against rules
+│   │   └── followup_service.py          # SMS, email, retry logic
+│   │
+│   ├── agents/
+│   │   ├── __init__.py
+│   │   ├── orchestrator.py              # LangGraph state machine (the brain)
+│   │   ├── voice_agent.py               # Twilio ConversationRelay handler
+│   │   ├── validation_agent.py          # Document field validation
+│   │   ├── correction_agent.py          # OCR error correction with LLM
+│   │   └── cross_reference_agent.py     # Cross-document consistency checks
+│   │
+│   ├── pipeline/
+│   │   ├── __init__.py
+│   │   ├── ingestion.py                 # Layer 1: PDF preprocessing
+│   │   ├── classification.py            # Layer 2: Page type classification
+│   │   ├── extraction.py                # Layers 3-4: OCR + entity extraction
+│   │   ├── review_loop.py              # Layer 5: Agentic validation-correction loop
+│   │   ├── completeness.py              # Layer 6: Gap identification
+│   │   └── confidence.py                # Layer 7: Confidence scoring and routing
+│   │
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── database.py                  # SQLAlchemy engine, session
+│   │   ├── schemas.py                   # Pydantic models for API request/response
+│   │   └── tables.py                    # SQLAlchemy table definitions
+│   │
+│   ├── db/
+│   │   ├── postgres_init.sql            # PostgreSQL schema migration
+│   │   ├── neo4j_seed.cypher            # Neo4j seed data (ICD-10, mappings, rules)
+│   │   └── sample_data.py              # Sample caregiver roster, insurance contracts
+│   │
+│   ├── workers/
+│   │   ├── __init__.py
+│   │   ├── document_processor.py        # Background: runs docs through 7-layer pipeline
+│   │   ├── followup_scheduler.py        # Background: polls Redis for scheduled follow-ups
+│   │   └── eligibility_watcher.py       # Background: re-checks eligibility on data updates
+│   │
+│   ├── prompts/
+│   │   ├── provider_inbound.txt         # System prompt: discharge planner calling
+│   │   ├── family_inbound.txt           # System prompt: family member calling
+│   │   ├── outbound_followup.txt        # System prompt: outbound follow-up call
+│   │   ├── extraction.txt               # System prompt: document entity extraction
+│   │   ├── validation.txt               # System prompt: field validation agent
+│   │   ├── correction.txt               # System prompt: OCR correction agent
+│   │   └── cross_reference.txt          # System prompt: cross-document consistency
+│   │
+│   └── tests/
+│       ├── test_eligibility.py
+│       ├── test_pipeline.py
+│       ├── test_voice_text_mode.py      # Text-based voice agent testing (no Twilio needed)
+│       └── test_guardrails.py
+│
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── index.html
+│   ├── tailwind.config.js
+│   └── src/
+│       ├── App.jsx
+│       ├── main.jsx
+│       ├── components/
+│       │   ├── IntakePipeline.jsx        # Main view: all referrals with status
+│       │   ├── ReferralDetail.jsx        # Detail view: one referral deep dive
+│       │   ├── LiveCallMonitor.jsx       # Active calls with real-time data
+│       │   ├── StatusBadge.jsx           # Color-coded status indicator
+│       │   ├── ConfidenceIndicator.jsx   # Green/yellow/red confidence dots
+│       │   └── GapList.jsx              # Missing items tracker
+│       └── api/
+│           └── client.js                # Axios/fetch wrapper for backend API
+│
+├── data/
+│   ├── sample_referrals/                # Sample fax PDFs for testing
+│   │   ├── referral_complete.pdf
+│   │   ├── referral_missing_f2f.pdf
+│   │   ├── referral_handwritten.pdf
+│   │   └── referral_poor_quality.pdf
+│   ├── icd10_home_health_top30.json     # Top 30 ICD-10 codes for home health
+│   ├── diagnosis_service_map.json       # Diagnosis → service type → certification
+│   ├── insurance_rules.json             # Payer/plan coverage rules
+│   ├── caregiver_roster.json            # 25 sample caregivers with certs/areas
+│   ├── medications_reference.json       # Top 50 medications with dosage ranges
+│   └── referral_sources.json            # Sample hospitals/SNFs/physician offices
+│
+├── specs/
+│   ├── PHASE_1_SPEC.md                  # Data & Storage
+│   ├── PHASE_2_SPEC.md                  # Guardrails & Conversation Boundaries
+│   ├── PHASE_3_SPEC.md                  # API & Backend Core Services
+│   ├── PHASE_4_SPEC.md                  # Background Workers & Task Queue
+│   ├── PHASE_5_SPEC.md                  # AI Orchestration & Logic
+│   └── PHASE_6_SPEC.md                  # Frontend Architecture
+│
+└── scripts/
+    ├── setup_twilio.sh                  # Configure Twilio phone number + TwiML app
+    ├── start_ngrok.sh                   # Start ngrok tunnel
+    ├── seed_databases.sh                # Load seed data into PostgreSQL + Neo4j
+    └── test_call.py                     # Script to initiate a test outbound call
+```
+
+---
+
+## CODING CONVENTIONS
+
+### Python
+- Use type hints everywhere: `def check_eligibility(patient_data: PatientData) -> EligibilityResult:`
+- Use Pydantic models for all API request/response schemas
+- Use async/await for all database operations and external API calls
+- Use SQLAlchemy 2.0 style (not legacy 1.x)
+- Use `neo4j` Python driver (not py2neo, not neomodel)
+- Use `redis.asyncio` for async Redis operations
+- Use `google-generativeai` SDK for Gemini API calls
+- Docstrings on every public function — one line explaining what it does
+- No print statements — use Python `logging` module
+- Error handling: catch specific exceptions, never bare `except:`
+- Environment variables loaded via Pydantic BaseSettings in config.py
+
+### FastAPI
+- Group endpoints by domain in separate router files (api/intake.py, api/voice.py, etc.)
+- Use dependency injection for database sessions and services
+- WebSocket endpoints use FastAPI's native WebSocket support
+- All endpoints return Pydantic models, never raw dicts
+- Use FastAPI BackgroundTasks for fire-and-forget async work
+- HTTP status codes: 201 for created, 200 for success, 404 for not found, 422 for validation error
+
+### React
+- Functional components only, no class components
+- useState and useEffect for state — no Redux, no Zustand, no external state management
+- Tailwind utility classes for all styling — no CSS files, no styled-components
+- Fetch data with useEffect + fetch/axios — no React Query, no SWR
+- Component files are PascalCase: IntakePipeline.jsx
+- Keep components small — if a component exceeds 150 lines, split it
+
+### Database
+- PostgreSQL: snake_case for table and column names
+- PostgreSQL: all tables have id (UUID), created_at (timestamp), updated_at (timestamp)
+- PostgreSQL: use JSONB for flexible/nested data (extracted fields, confidence scores)
+- Neo4j: PascalCase for node labels (Diagnosis, ServiceType, CertificationType)
+- Neo4j: UPPER_SNAKE_CASE for relationship types (HAS_DIAGNOSIS, REQUIRES, NEEDS_CERTIFICATION)
+- Neo4j: camelCase for properties (icdCode, expiryDate)
+- Redis: colon-separated key namespaces (pipeline:{doc_id}, call:{call_sid}, eligibility:{zip}:{insurance})
+
+---
+
+## TWILIO CONVERSATIONRELAY — HOW IT WORKS
+
+### Architecture
+Twilio handles STT (speech-to-text) and TTS (text-to-speech). We handle the LLM reasoning. Communication is via WebSocket.
+
+### Inbound Call Flow
+1. Call arrives at our Twilio phone number
+2. Twilio hits our `/voice/inbound` webhook (POST)
+3. We return TwiML: `<Response><Connect><ConversationRelay url="wss://{NGROK_URL}/voice/stream" welcomeGreeting="Thank you for calling ABC Home Health..." /></Connect></Response>`
+4. Twilio opens a WebSocket to our server
+5. Twilio sends `setup` event with call metadata (CallSid, From, To)
+6. Caller speaks → Twilio transcribes → sends `prompt` event with transcribed text + `last: true` when speech is complete
+7. We send transcribed text + conversation history to Gemini Flash
+8. Gemini returns response text
+9. We send response back to Twilio via WebSocket as `{"type": "text", "token": "response text here"}`
+10. Twilio speaks the response to the caller via TTS
+11. If caller interrupts mid-speech → Twilio sends `interrupt` event → we stop current response
+
+### Outbound Call Flow
+1. Our system calls Twilio REST API: `client.calls.create(to="+1234567890", from_=TWILIO_NUMBER, twiml=twiml_with_conversation_relay)`
+2. Same ConversationRelay WebSocket flow from step 4 onward
+3. Additional: detect voicemail/answering machine via Twilio's `AnsweredBy` parameter
+
+### WebSocket Message Types We RECEIVE from Twilio
+- `setup` — connection established, contains call metadata and custom parameters
+- `prompt` — caller's transcribed speech, `last: true` when speech segment complete
+- `interrupt` — caller interrupted the agent, stop current response
+- `dtmf` — caller pressed phone keys (probably won't use but handle gracefully)
+- `error` — something went wrong
+
+### WebSocket Messages We SEND to Twilio
+- `{"type": "text", "token": "response text"}` — text for TTS
+- `{"type": "text", "token": "response text", "last": true}` — final text segment, TTS starts immediately
+- `{"type": "end"}` — end the ConversationRelay session, return control to TwiML
+
+### STT/TTS Configuration
+- STT provider: Deepgram (fastest, best for medical terminology)
+- TTS provider: google (reliable, natural) or ElevenLabs (most natural but slower)
+- Language: en-US
+- Set via ConversationRelay TwiML attributes: `ttsProvider="google"` `transcriptionProvider="deepgram"`
+
+### Critical: Interrupt Handling
+When we receive an `interrupt` event, we MUST:
+1. Stop any pending LLM generation
+2. Clear the current response buffer
+3. Wait for the next `prompt` with the caller's interrupting speech
+4. Process that new speech as the latest input
+
+### Critical: Conversation History
+Gemini has no memory between calls. We maintain conversation history per call in memory (list of {role, content} dicts). Every time we receive a `prompt`, we append the caller's speech, send the full history to Gemini, get the response, and append that too.
+
+### Critical: Mid-Call Eligibility Checks
+During a call, when the voice agent has collected enough data (diagnosis, insurance, zip code), it signals the orchestrator for an eligibility check. The LLM response will contain a structured marker (e.g., `[CHECK_ELIGIBILITY]` with extracted data) that our WebSocket handler intercepts. We:
+1. Parse the extracted data from the LLM response
+2. Call the EligibilityService synchronously (must be fast — 2-3 seconds max)
+3. Inject the eligibility result into the conversation history as a system message
+4. Send a follow-up prompt to Gemini: "Eligibility check returned: ACCEPT. Missing: F2F encounter note. Communicate this to the caller naturally."
+5. Send Gemini's response to Twilio for TTS
+
+If the eligibility check takes longer than 2 seconds, send filler to Twilio first: `{"type": "text", "token": "Let me check our availability for that area... one moment."}` — then send the real response when ready.
+
+---
+
+## FEEDBACK LOOPS — THE LLM ALWAYS KNOWS WHAT HAPPENED
+
+The system is NOT fire-and-forget. Every action produces a result that feeds back into the LLM's context so it can adjust. There are 6 feedback loops:
+
+### Loop 1: Voice Conversation + Guardrail Feedback
+
+```
+Caller speaks → transcribed text
+    → Gemini gets: system prompt + full conversation history + caller's speech
+    → Gemini responds
+    → GuardrailService checks the response
+        → IF PASSED: send to Twilio TTS → caller hears it
+        → IF BLOCKED: feed back to Gemini as system message:
+          "[GUARDRAIL] Your response was blocked. Reason: {reason}.
+           Rephrase without {violation}. Do not acknowledge the correction to the caller."
+        → Gemini regenerates with constraint → re-check → send
+    → Caller responds → append to history → cycle continues
+```
+
+Implementation: the WebSocket handler maintains a `conversation_history: list[dict]` per call. Every caller turn, agent turn, eligibility result, and guardrail correction is appended. Gemini always receives the full history.
+
+### Loop 2: Mid-Call Eligibility Feedback
+
+```
+Gemini collects enough data (diagnosis + insurance + zip)
+    → Gemini signals check needed (structured JSON in response)
+    → WebSocket handler intercepts, calls EligibilityService
+    → Result injected into conversation_history as system message:
+      "[SYSTEM] Eligibility check result: {decision}.
+       Reasons: {reasons}. Missing: {gaps}. Matched caregivers: {count}.
+       Communicate this to the caller naturally. Do not say 'the system told me.'"
+    → Gemini formulates natural response using this data
+    → If caller provides NEW information that changes eligibility:
+        → Re-run eligibility with updated data
+        → Inject updated result: "[SYSTEM] UPDATED eligibility: {new_decision}. Changed because: {reason}."
+        → Gemini adjusts response accordingly
+```
+
+The eligibility check can run MULTIPLE times during a single call as new data arrives. Each result replaces the previous context.
+
+### Loop 3: Document Extraction Agentic Loop
+
+```
+Extraction produces raw fields
+    → Validation Agent checks each field → produces error list
+    → For each error:
+        → Correction Agent receives:
+            - original_value: "M17.1I"
+            - error: "Invalid ICD-10 code"
+            - source_context: original image region or text
+            - reference: "Valid codes in M17 family: M17.0, M17.1, M17.10, M17.11, M17.12..."
+        → Correction Agent attempts fix → returns corrected_value + confidence
+        → IF confidence >= 0.8: accept correction
+        → IF confidence 0.5-0.8: accept but flag for review
+        → IF confidence < 0.5: feed back to Correction Agent:
+            "[RETRY] Your correction '{corrected_value}' has low confidence ({confidence}).
+             Additional context: {surrounding_text}. {clinical_hint}.
+             Re-examine the source and try again."
+        → Correction Agent retries with enriched context
+        → Maximum 2 retry attempts per field → then goes to gap list
+```
+
+### Loop 4: Cross-Reference Resolution Loop
+
+```
+Cross-Reference Agent finds inconsistency across pages
+    → Attempts resolution using matching fields (DOB, other identifiers)
+    → IF resolved: updates the canonical value
+    → IF unresolved: feeds back to Correction Agent:
+        "[CROSS-REF CONFLICT] Field '{field}' has conflicting values:
+         Page {n1}: '{value1}' (confidence: {c1})
+         Page {n2}: '{value2}' (confidence: {c2})
+         Re-examine both source regions and determine the correct value."
+    → Correction Agent re-examines both sources → returns resolution with confidence
+    → IF still unresolved after retry: both values kept, flagged for human/voice verification
+```
+
+### Loop 5: Orchestrator State Loop
+
+```
+Orchestrator makes decision based on current state
+    → Triggers action (outbound call, send SMS, re-check eligibility)
+    → Action produces result (data collected, SMS delivered, eligibility updated)
+    → Result merges back into IntakeState
+    → Orchestrator re-evaluates: are there still gaps? has the decision changed?
+    → IF gaps remain: trigger next action
+    → IF decision changed (e.g., new zip code makes patient out of service area):
+        update status, trigger appropriate notifications
+    → Loop continues until: ACCEPTED or DECLINED or ESCALATED
+```
+
+Every state transition is logged with the data that caused it. The orchestrator never makes a blind decision — it always has the full audit trail.
+
+### Loop 6: Outbound Call Result Feedback
+
+```
+Orchestrator triggers outbound call with mission:
+    "Call Dr. Smith's office. Collect: signed physician orders, F2F encounter note.
+     Verify: insurance member ID ending in 6789."
+    → Voice Agent makes the call
+    → Call outcome feeds back to orchestrator:
+        → IF answered + data collected: merge data into state → re-check eligibility
+        → IF answered + partial data: update gaps → schedule follow-up for remaining items
+        → IF voicemail: log attempt → schedule retry in 2 hours → send SMS as backup
+        → IF no answer: log attempt → schedule retry in 1 hour
+        → IF wrong number: flag referral source contact info as potentially incorrect
+    → Orchestrator adjusts next action based on what actually happened
+```
+
+### Context Accumulation Pattern
+
+For every Gemini call, the context is structured using Gemini's roles:
+
+```python
+# System prompt goes in model initialization, NOT in history
+model = genai.GenerativeModel(
+    'gemini-2.0-flash',
+    system_instruction=f"""
+    {mode_specific_prompt}
+    
+    Caller context: {caller_info if known else 'Unknown caller'}
+    
+    RESPONSE FORMAT: Always respond with JSON containing:
+    - "response": your spoken reply to the caller
+    - "extracted": any new structured data from their speech
+    - "needs_clarification": fields you need to ask about
+    - "ready_for_eligibility": true when you have diagnosis + insurance + zip
+    
+    {guardrail_instructions}
+    """,
+    generation_config={"response_mime_type": "application/json", "max_output_tokens": 500}
+)
+
+# Conversation history uses "user" and "model" roles ONLY
+history = [
+    {"role": "user", "parts": ["caller speech turn 1"]},
+    {"role": "model", "parts": ['{"response": "agent response 1", "extracted": {...}}']},
+    
+    # Eligibility result injected as "user" with system prefix
+    {"role": "user", "parts": ["[SYSTEM — NOT FROM CALLER] Eligibility result: ACCEPT..."]},
+    {"role": "model", "parts": ['{"response": "Great news, we can accept...", "extracted": {}}']},
+    
+    # Guardrail correction injected as "user" with prefix
+    {"role": "user", "parts": ["[GUARDRAIL — NOT FROM CALLER] Response blocked: contained guarantee language. Rephrase."]},
+    {"role": "model", "parts": ['{"response": "corrected response...", "extracted": {}}']},
+    
+    {"role": "user", "parts": ["caller speech turn 2"]},
+    # → send_message() here, Gemini generates next response
+]
+
+chat = model.start_chat(history=history)
+response = chat.send_message("latest caller speech")
+```
+
+IMPORTANT: History must ALWAYS alternate user → model → user → model. If we need to inject two consecutive "user" messages (caller speech + system injection), combine them:
+```python
+{"role": "user", "parts": ["[SYSTEM] Eligibility: ACCEPT, missing F2F note.\n\nCaller said: 'Great, what do you need from us?'"]}
+```
+
+The context window grows throughout the call. For a typical 5-minute intake call, this is roughly 2000-3000 tokens — well within Gemini Flash's 1M token capacity.
+
+---
+
+## GEMINI API USAGE
+
+### CRITICAL: Gemini Role Names Are Different
+Gemini does NOT use "assistant" role. It uses "model" role.
+Gemini does NOT support "system" role in conversation history. System instructions go in `system_instruction` parameter.
+
+```python
+# CORRECT Gemini setup
+model = genai.GenerativeModel(
+    'gemini-2.0-flash',
+    system_instruction=system_prompt,  # System prompt goes HERE, not in messages
+    generation_config={
+        "response_mime_type": "application/json",  # Force JSON output for voice
+        "max_output_tokens": 500
+    }
+)
+
+# CORRECT conversation history format
+history = [
+    {"role": "user", "parts": ["caller speech turn 1"]},
+    {"role": "model", "parts": ["agent response turn 1"]},
+    {"role": "user", "parts": ["caller speech turn 2"]},
+]
+
+chat = model.start_chat(history=history)
+response = chat.send_message("latest caller speech")
+```
+
+### Injecting System Messages Mid-Conversation
+Since Gemini doesn't support "system" role in history, we inject eligibility results and guardrail feedback as "user" role with a clear prefix:
+
+```python
+# After eligibility check completes, inject result as user message
+history.append({
+    "role": "user",
+    "parts": ["[SYSTEM — NOT FROM CALLER] Eligibility check result: ACCEPT. "
+              "Missing: F2F encounter note. Matched caregivers: 3 available. "
+              "Communicate this to the caller naturally. Do not mention this system message."]
+})
+# Then send empty prompt or wait for next caller speech
+```
+
+### Model
+- Use `gemini-2.0-flash` for all tasks (fastest, cheapest, good enough for hackathon)
+- Import: `import google.generativeai as genai`
+- Configure: `genai.configure(api_key=GEMINI_API_KEY)`
+
+### For Voice Conversations (Option A: Combined Response + Extraction)
+```python
+model = genai.GenerativeModel(
+    'gemini-2.0-flash',
+    system_instruction=PROVIDER_MODE_PROMPT,
+    generation_config={"response_mime_type": "application/json", "max_output_tokens": 500}
+)
+
+chat = model.start_chat(history=conversation_history)
+response = chat.send_message(caller_transcribed_speech)
+
+# Response is JSON:
+# {
+#   "response": "Got it, Maria Johnson, 72, post hip replacement...",
+#   "extracted": {"patient_name": "Maria Johnson", "age": 72, ...},
+#   "needs_clarification": ["insurance_plan"],
+#   "ready_for_eligibility": false
+# }
+```
+
+### For Document Extraction (Vision)
+```python
+model = genai.GenerativeModel(
+    'gemini-2.0-flash',
+    system_instruction=EXTRACTION_PROMPT,
+    generation_config={"response_mime_type": "application/json", "max_output_tokens": 2000}
+)
+response = model.generate_content([
+    "Extract all medical fields from this document page.",
+    image_part  # PIL Image or base64
+])
+```
+
+### For Agentic Validation/Correction
+```python
+model = genai.GenerativeModel(
+    'gemini-2.0-flash',
+    system_instruction=VALIDATION_PROMPT,
+    generation_config={"response_mime_type": "application/json", "max_output_tokens": 1000}
+)
+response = model.generate_content(
+    f"Validate these extracted fields: {fields_json}. Reference data: {reference_json}"
+)
+```
+
+### Token Management
+- max_output_tokens=500 for voice responses (keeps them concise and natural for phone)
+- max_output_tokens=2000 for document extraction (needs room for full field extraction)
+- max_output_tokens=1000 for validation/correction agents
+- max_output_tokens=300 for outbound mode (shorter, more directed conversations)
+
+---
+
+## VOICE DATA EXTRACTION — OPTION A (COMBINED RESPONSE + EXTRACTION)
+
+### Why Option A
+One Gemini call handles BOTH the conversational response AND structured data extraction from the caller's speech. This is critical because:
+- Option B (two separate calls) doubles latency — 1-2 extra seconds of silence per turn kills the phone experience
+- Option C (regex/NER) can't handle messy spoken language ("she had her hip done last Tuesday" → hip replacement on July 8th)
+
+### How It Works
+
+The system prompt tells Gemini to ALWAYS return JSON with two parts:
+1. `response` — the natural language reply to speak to the caller
+2. `extracted` — structured fields pulled from the caller's speech this turn
+
+```
+Caller says: "Yeah so I have a patient, Maria Johnson, she's 72, had a hip 
+replacement last Tuesday at Mount Sinai, she's on Medicare, lives in Brooklyn, 
+11201 area, she'll need a nurse three times a week"
+
+Gemini returns:
+{
+  "response": "Got it. Maria Johnson, 72, post hip replacement at Mount Sinai, 
+   Medicare, zip 11201, skilled nursing 3 times per week. Is that Medicare 
+   Part A or a Medicare Advantage plan?",
+  "extracted": {
+    "patient_name": "Maria Johnson",
+    "age": 72,
+    "procedure": "hip replacement",
+    "referring_facility": "Mount Sinai",
+    "insurance_payer": "Medicare",
+    "insurance_plan": null,
+    "zip_code": "11201",
+    "service_types": ["skilled_nursing"],
+    "visit_frequency": "3x/week"
+  },
+  "needs_clarification": ["insurance_plan"],
+  "ready_for_eligibility": false
+}
+```
+
+### Extraction Accumulation Across Turns
+
+The WebSocket handler maintains a `accumulated_data: dict` per call that MERGES across turns:
+
+```
+Turn 1: extracted has name, diagnosis, insurance_payer → merge into accumulated
+Turn 2: extracted has insurance_plan, zip → merge into accumulated
+Turn 3: extracted has DOB, physician → merge into accumulated
+         ready_for_eligibility = true → trigger eligibility check
+```
+
+Merge rules:
+- New value for a null field → accept
+- New value for an existing field → keep the latest (caller corrected themselves)
+- null value for an existing field → keep the existing (don't erase what we have)
+
+### Defensive JSON Parsing
+
+Gemini with `response_mime_type: "application/json"` usually returns valid JSON. But handle failures:
+
+```python
+try:
+    parsed = json.loads(response.text)
+    spoken_response = parsed.get("response", response.text)
+    extracted = parsed.get("extracted", {})
+except json.JSONDecodeError:
+    # Gemini returned plain text — use it as the spoken response, skip extraction this turn
+    spoken_response = response.text
+    extracted = {}
+```
+
+The conversation NEVER breaks because extraction failed. Extraction is best-effort per turn. If it misses something, it'll catch it next turn.
+
+---
+
+## CALLER IDENTIFICATION — HOW THE AGENT KNOWS WHO'S CALLING
+
+### The Problem
+Same phone number, different caller types: a discharge planner, a family member, or a patient. The agent needs to use the right conversation mode.
+
+### Solution: Ask on First Turn
+
+The welcome greeting (set in ConversationRelay TwiML) says:
+"Thank you for calling ABC Home Health. Are you calling as a healthcare provider with a patient referral, or as a patient or family member looking for home care services?"
+
+Based on the response:
+- "I'm a discharge planner" / "I have a referral" / "I'm calling from Mount Sinai" → PROVIDER MODE
+- "It's about my mom" / "I need help for my husband" / "I'm a family member" → FAMILY MODE
+- "I need home care" / "My doctor told me to call" → PATIENT MODE
+
+### Implementation
+The FIRST Gemini call after the welcome greeting includes an additional instruction:
+"Based on the caller's response, determine caller_type: 'provider', 'family', or 'patient'. Include this in your JSON output."
+
+Once identified, the system prompt switches to the appropriate mode for all subsequent turns. The caller_type is stored in call state and never re-asked.
+
+### Known Caller Optimization
+For the hackathon stretch goal: if the Twilio `From` number matches a known referral source phone number in our database, skip the identification question and go straight to provider mode:
+"Thank you for calling ABC Home Health. Go ahead with your referral details."
+
+---
+
+## ERROR HANDLING — WHAT HAPPENS WHEN THINGS BREAK
+
+### Gemini API Timeout or Error During a Call
+- If Gemini doesn't respond within 3 seconds: send filler to Twilio ("One moment please...")
+- If Gemini fails after retry: "I apologize, I'm having a technical difficulty. Let me connect you with our coordinator." → end ConversationRelay session
+- Never leave the caller in silence for more than 4 seconds
+
+### Database Down During Eligibility Check
+- If Neo4j or PostgreSQL is unreachable during a mid-call eligibility check:
+  - Don't crash the call
+  - Voice Agent says: "I'm unable to check our availability right now, but I've captured all the details. Our coordinator will review and call you back within the hour."
+  - Create the intake record with status PENDING_REVIEW
+  - Log the database error for debugging
+
+### Twilio WebSocket Disconnection
+- ConversationRelay does NOT reconnect automatically
+- If WebSocket drops, the call disconnects
+- Implement a status callback to detect dropped calls
+- Auto-create a follow-up task: "Call back {caller_number} — call dropped during intake"
+
+### Document Pipeline Failure
+- If any layer in the pipeline fails, don't lose the work from previous layers
+- Save intermediate results to Redis at each layer checkpoint
+- Mark the document as FAILED with the failing layer noted
+- Allow manual retry from the failed layer, not from scratch
+
+### Frontend Real-Time Updates
+- Dashboard polls the backend API every 3 seconds for active referrals and call status
+- No WebSocket to frontend — polling is simpler and good enough for hackathon
+- Active call data comes from Redis (fast reads) not PostgreSQL
+
+---
+
+## GUARDRAILS — ENFORCED IN CODE, NOT JUST PROMPTS
+
+### System Prompt Level (soft guardrails)
+- Encoded in the system prompts under prompts/ directory
+- Different per conversation mode (provider, family, outbound)
+- Includes explicit instructions: "Never give medical advice", "Never confirm admission without eligibility check"
+
+### Code Level (hard guardrails — GuardrailService)
+The GuardrailService runs on EVERY outgoing message before it's sent to Twilio:
+
+```python
+BLOCKED_PATTERNS = [
+    r'\b(SSN|social security)\b.*\d{3}-?\d{2}-?\d{4}',  # Full SSN
+    r'\byou (should|must|need to) take\b',                # Medical advice
+    r'\byou are (admitted|accepted|approved)\b',           # Premature admission confirmation
+    r'\bguarantee\b',                                       # Guarantee language
+    r'\byour nurse will be\b',                              # Specific caregiver promise
+    r'\byour first visit is on\b',                          # Specific date promise
+]
+```
+
+If any pattern matches, the message is blocked and rewritten with a safe alternative.
+
+### Confidence Threshold Level
+- Eligibility result confidence < 0.7 → Voice Agent says "I'll need to have our coordinator verify..." NOT "we can accept"
+- Extracted field confidence < 0.5 → goes to gap list, Voice Agent asks caller to confirm
+- Never auto-populate a field with confidence < 0.3
+
+### Escalation Triggers
+- Caller asks to speak to a human → ConversationRelay `end` session with handoff data
+- Caller is angry or distressed → acknowledge, offer human coordinator
+- 3+ failed attempts to understand caller → "Let me connect you with our coordinator"
+- Clinical question beyond intake scope → redirect to coordinator
+- Maximum call duration exceeded (15 minutes) → wrap up, schedule follow-up
+
+---
+
+## DATA MERGE RULES
+
+When data about the same patient arrives from multiple sources (fax + call), resolve conflicts:
+
+1. **Caller-provided data wins over fax extraction** for: patient phone number, address, emergency contact, language preference (caller knows current info, fax may be stale)
+2. **Fax data wins over caller-provided** for: ICD-10 codes, physician orders, medication lists, diagnosis details (clinical documents are authoritative)
+3. **Insurance data**: if conflict, flag for human review — wrong insurance = denied claim
+4. **Patient name**: if slight variation (Maria Johnson vs Maria L. Johnson-Smith), keep the more complete version, flag for review
+5. **When in doubt**: keep both values, flag the conflict, add to gap list for human resolution
+
+---
+
+## ENVIRONMENT VARIABLES
+
+```
+# Twilio
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+TWILIO_TWIML_APP_SID=
+
+# Ngrok
+NGROK_URL=             # e.g., abc123.ngrok-free.app (no protocol, no path)
+
+# Gemini
+GEMINI_API_KEY=
+
+# PostgreSQL
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=intakeai
+POSTGRES_USER=intakeai
+POSTGRES_PASSWORD=intakeai_dev
+
+# Neo4j
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=intakeai_dev
+
+# Redis
+REDIS_URL=redis://localhost:6379/0
+
+# App
+APP_PORT=8000
+LOG_LEVEL=INFO
+ENVIRONMENT=development
+```
+
+---
+
+## DOCKER COMPOSE SERVICES
+
+```yaml
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_DB: intakeai
+      POSTGRES_USER: intakeai
+      POSTGRES_PASSWORD: intakeai_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/postgres_init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  neo4j:
+    image: neo4j:5
+    ports: ["7474:7474", "7687:7687"]
+    environment:
+      NEO4J_AUTH: neo4j/intakeai_dev
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+volumes:
+  postgres_data:
+  neo4j_data:
+```
+
+Backend and frontend run outside Docker (direct on host) for faster iteration during hackathon. Databases run in Docker for easy setup/teardown.
+
+---
+
+## TESTING STRATEGY
+
+### Text Mode for Voice Agent
+The voice agent has a text-based testing mode that bypasses Twilio entirely:
+- `POST /voice/test` — accepts JSON `{"message": "I have a patient referral..."}` and returns the agent's response as text
+- Maintains conversation state in memory per test session
+- Same LLM logic, same guardrails, same eligibility checks — just no audio
+- Use this for rapid iteration before testing with real phone calls
+
+### Database Tests
+- Test eligibility queries with known data: "patient in zip 11201 with Medicare Part A needing skilled nursing" → should return ACCEPT
+- Test edge cases: expired caregiver certification, unserved zip code, unaccepted insurance → should return DECLINE with correct reason
+
+### Pipeline Tests
+- Test with sample PDFs of varying quality
+- Verify extraction accuracy against known correct values
+- Verify validation catches known errors (invalid ICD codes, impossible dosages)
+- Verify confidence scoring aligns with extraction quality
+
+### Live Call Testing
+- Only after text mode tests pass
+- Use a personal phone to call the Twilio number
+- Test each conversation mode: provider, family, self-referral
+- Test outbound calls to a personal phone
+- Record results and edge cases for demo prep
+
+---
+
+## GIT WORKFLOW
+
+### Branch Strategy
+- `main` — stable, demo-ready code only
+- `dev` — integration branch, all features merge here first
+- `feature/phase-{N}-{description}` — per-phase feature branches
+
+### Commit Convention
+Commit after EVERY meaningful step. Format: `phase-{N}: {description}`
+
+### Required Commits Per Phase
+
+**Phase 1: Data & Storage**
+```
+phase-1: docker-compose with postgres, neo4j, redis
+phase-1: postgresql schema migration (all tables)
+phase-1: neo4j seed data (icd-10, diagnosis-service-cert mappings)
+phase-1: neo4j insurance coverage rules
+phase-1: neo4j medication reference data
+phase-1: sample data loaded (caregivers, insurance contracts, service areas, referral sources)
+phase-1: database connection utilities (postgres, neo4j, redis)
+phase-1: verify all databases connected and seeded
+```
+
+**Phase 2: Guardrails & Conversation Boundaries**
+```
+phase-2: guardrail service with blocked patterns
+phase-2: system prompts (provider mode, family mode, outbound mode)
+phase-2: confidence threshold configuration
+phase-2: escalation trigger definitions
+phase-2: data merge rules implementation
+phase-2: guardrail unit tests passing
+```
+
+**Phase 3: API & Backend Core Services**
+```
+phase-3: fastapi skeleton with health check endpoint
+phase-3: pydantic schemas for all request/response models
+phase-3: intake endpoints (create, get, update status, list active)
+phase-3: eligibility service (neo4j traversal + postgres queries)
+phase-3: eligibility endpoint wired to service
+phase-3: caregiver match service and endpoint
+phase-3: document upload endpoint
+phase-3: follow-up action endpoints
+phase-3: voice webhook and websocket endpoints (stubs)
+phase-3: all endpoints tested with sample requests
+```
+
+**Phase 4: Background Workers & Task Queue**
+```
+phase-4: document processor worker (7-layer pipeline skeleton)
+phase-4: layer 1-2 implemented (ingestion, classification)
+phase-4: layer 3-4 implemented (ocr routing, entity extraction)
+phase-4: layer 5 implemented (validation, correction, cross-reference agents)
+phase-4: layer 6-7 implemented (completeness check, confidence scoring)
+phase-4: full pipeline tested with sample pdfs
+phase-4: followup scheduler worker (redis polling)
+phase-4: eligibility watcher worker
+```
+
+**Phase 5: AI Orchestration & Logic**
+```
+phase-5: langgraph state definition (IntakeState)
+phase-5: langgraph nodes (receive_referral, process_document, check_eligibility)
+phase-5: langgraph nodes (handle_inbound_call, initiate_outbound_call)
+phase-5: langgraph nodes (evaluate_gaps, merge_data, make_decision)
+phase-5: langgraph edges and routing logic
+phase-5: voice agent websocket handler with conversationrelay protocol
+phase-5: voice agent provider mode conversation flow working
+phase-5: voice agent family mode conversation flow working
+phase-5: voice agent outbound mode working
+phase-5: mid-call eligibility check integration working
+phase-5: interrupt handling working
+phase-5: full orchestrator tested end-to-end with text mode
+phase-5: live twilio call tested end-to-end
+```
+
+**Phase 6: Frontend Architecture**
+```
+phase-6: react project scaffolding with vite + tailwind
+phase-6: api client utility
+phase-6: intake pipeline view (list all referrals with status)
+phase-6: referral detail view (extracted data, confidence, gaps, transcripts)
+phase-6: live call monitor view
+phase-6: frontend connected to backend api
+phase-6: demo script rehearsed, edge cases tested
+```
+
+---
+
+## PHASE ASSIGNMENTS (4 Engineers)
+
+### Hour 1: Foundation (All 4)
+- **Engineer 1:** FastAPI skeleton, config.py, health check, WebSocket endpoint stub
+- **Engineer 2:** Document pipeline scaffolding, file upload handler
+- **Engineer 3:** Docker Compose up, PostgreSQL migration, Neo4j seed scripts, Redis verify
+- **Engineer 4:** Twilio account config, ngrok setup, TwiML app creation, test inbound call reaches server
+
+### Hours 2-3: Parallel Build
+- **Engineer 1:** Voice Agent (Phase 5 voice parts) — ConversationRelay WebSocket handler, conversation modes, interrupt handling, mid-call eligibility integration
+- **Engineer 2:** Document Pipeline (Phase 4) — 7-layer extraction with agentic review loop
+- **Engineer 3:** Eligibility Engine (Phase 3 core) — Neo4j traversal queries, eligibility service, caregiver matching, all API endpoints
+- **Engineer 4:** Orchestrator + Workers (Phase 5 orchestration + Phase 4 workers) — LangGraph state machine, background workers, follow-up scheduling
+
+### Hours 4-5: Integration + Demo
+- **Engineer 1:** Live call testing, edge case handling, demo script rehearsal
+- **Engineer 2:** Connect document pipeline to orchestrator, test with sample PDFs
+- **Engineer 3:** React dashboard (Phase 6) — pipeline view, detail view, live call monitor
+- **Engineer 4:** Wire everything end-to-end, integration testing, fix breaking points
+
+### Last 30 Minutes: ALL
+- Rehearse demo scenarios
+- Test live calls with each conversation mode
+- Prepare fallback plan if something breaks during demo
+- Clean up any console errors or visual bugs
+
+---
+
+## DEMO SCENARIOS (Prepare These)
+
+### Scenario 1: Discharge Planner Calls (Primary Demo)
+Judge calls the Twilio number. Says: "Hi, I'm Sarah from Mount Sinai. I have a discharge referral. 72-year-old female, Maria Johnson, hip replacement, Medicare Part A, zip code 11201, discharging tomorrow morning. She'll need skilled nursing 3 times a week."
+Expected: Agent collects info, checks eligibility mid-call, responds with accept + asks for F2F documentation.
+
+### Scenario 2: Fax Processing
+Upload a sample PDF to the dashboard. Watch the 7-layer pipeline process it in real-time. See extracted data appear with confidence scores. See gaps identified. Watch the system trigger an outbound follow-up call.
+
+### Scenario 3: Family Member Calls
+Judge calls as a worried daughter. "Hi, my mom just had a stroke, she's at NYU Langone, she's coming home next week and I don't know what to do."
+Expected: Agent is compassionate, collects what's available, gives reassurance, schedules coordinator follow-up.
+
+### Scenario 4: Decline Scenario
+Judge calls with a patient in zip code 90210 (not in service area). Expected: Agent politely declines, suggests the family contact agencies in their area.
+
+---
+
+## CRITICAL REMINDERS
+
+1. **Twilio is REQUIRED for sponsor prizes.** Every voice interaction must go through Twilio ConversationRelay. No shortcuts.
+
+2. **Gemini for ALL LLM calls.** We use Gemini Flash throughout — voice reasoning, document extraction, validation agents. One LLM, one API key, consistent behavior.
+
+3. **The voice agent does NOT think for itself.** It collects data and follows instructions from the orchestrator. The orchestrator makes decisions. The voice agent speaks them.
+
+4. **Confidence scoring is non-negotiable.** Every extracted field must have a confidence score. This is what separates us from "dumb OCR" solutions and directly addresses the judges' reliability criterion.
+
+5. **Guardrails are checked in CODE, not just prompts.** The GuardrailService validates every outgoing message. Prompts can be jailbroken. Code checks can't.
+
+6. **Git commit after every step.** If something breaks, we can rollback to the last working state. No one loses more than 20 minutes of work.
+
+7. **Text mode first, Twilio second.** Build and test the voice agent logic in text mode. Only connect Twilio when the logic works. Debugging over phone calls is 10x slower than debugging with text.
+
+8. **Sample data must be realistic.** Fake caregiver names, real ICD-10 codes, real zip codes, realistic insurance plan names. Judges will notice if the data looks like placeholder garbage.
+
+9. **The dashboard is proof, not the product.** The voice call is the star of the demo. The dashboard shows judges what's happening behind the scenes. Don't over-invest in frontend polish.
+
+10. **Pre-load EVERYTHING before hackathon day.** Docker images pulled. npm packages installed. pip packages installed. Twilio account configured. Phone number provisioned. Ngrok tested. Sample data files ready. Specs read by all 4 engineers. Zero setup time on day 1.
