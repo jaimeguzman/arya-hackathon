@@ -16,5 +16,11 @@ google-generativeai>=0.8.0
 # Local Phase 5/6 stack is verified on langgraph 0.3.x (not 1.2+)
 langgraph>=0.2,<0.4
 # Tests (from main)
+# Orchestrator (Task 4) + eligibility connection (Task 3)
+langgraph>=1.2.0
+# Dashboard API (Task 4)
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+# Tests
 pytest>=8.0.0
 pytest-asyncio>=0.24.0

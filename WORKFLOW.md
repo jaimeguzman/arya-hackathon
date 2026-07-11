@@ -22,18 +22,20 @@ This section is a point-in-time status snapshot, not an evergreen part of the wo
 | **Orchestrator (LangGraph)** (Task 4) | ✅ Done | `local/backend/orchestrator/` — `graph.py` (`intake_received → check_eligibility → decide → followup_{accept,decline,needs_info} → END`), `state.py`, `eligibility.py`, `demo.py`. Runs with no DB/Twilio (JSON fallback). |
 | **Eligibility ↔ Orchestrator connection** (Task 3 + Task 4) | ✅ Done | The team's deterministic `check_eligibility()` core (vendored to `local/backend/orchestrator/eligibility_core.py` from `develop:apis/api_intake/app/safety/eligibility.py`) is now driven by a real data-fetch layer (`eligibility_data.py` — Postgres+Neo4j queries with JSON fallback) via `RealEligibilityClient`, injected as the graph's default. 25 orchestrator+followup tests green offline. |
 | **Follow-up Agent** (Task 4) | ✅ Done (against stubs) | `local/backend/followup/` — `agent.py` (decision→action + bounded retry/escalation, must-have.md #6), `notifications.py` (Twilio contract + stub). |
+| **Dashboard API** (Task 4) | ✅ Done | `local/backend/api/` — FastAPI (`app.py`) runs a referral through the orchestrator and persists to PostgreSQL `intake_records` (`referral_store.py`, additive `followup`/`trace` columns via idempotent migration); `GET/POST /referrals`, `/referrals/{id}`, `/health`. Needs Docker up for live data. |
+| **Dashboard UI** (Task 4) | ✅ Done | `apps/dashboard/` — React+TS+Vite. Referral list, detail panel (eligibility reasons, gaps, follow-up, trace, facts), new-referral modal with presets. Builds/type-checks/lints clean; renders with graceful loading/empty/error states. Live data pending Docker. Extraction-confidence + transcript sections are labeled placeholders (Tasks 2 & 1). |
 
 ### What's pending
 
 | Component | Status |
 |---|---|
-| FastAPI backend skeleton (health check, WebSocket stub) | ❌ Not started |
+| FastAPI backend skeleton (health check, WebSocket stub) | ⏳ Partial — a FastAPI app with `/health` + referral endpoints exists (`local/backend/api/app.py`, dashboard API). The Twilio WebSocket endpoint (Voice Agent) is still Task 1's, not built. |
 | Eligibility Agent | ✅ Connected — see "Eligibility ↔ Orchestrator connection" above. Deterministic decision core + Postgres/Neo4j data-fetch layer (`eligibility_data.py`) with JSON fallback. Real DB path needs Docker up to verify live; JSON path verified offline. A `POST /eligibility-check` HTTP endpoint is still not exposed (orchestrator calls it in-process). |
 | Document Pipeline (7 layers) | ❌ Not started — test fixtures exist (`data/synthetic/referral_faxes/`, 3 real fax PDFs), no extraction/validation/correction code |
 | Voice Agent (Twilio ConversationRelay, consent gather, tokenize/rehydrate, banned-phrase filter, provider/family/outbound modes) | ❌ Not started |
 | Twilio wiring for Follow-up Agent | ⏳ Contract defined by Task 4 (`local/backend/followup/notifications.py` — `NotificationClient`); real Twilio client not built. Drop-in via `FollowUpAgent(notifier=...)`. |
 | Guardrail enforcement code (the 6 `must-have.md` safety guarantees as actual code) | ⏳ Partial — #3 (deterministic decision, no LLM) and #6 (bounded retries/escalation) enforced in the orchestrator/follow-up code; the call-path guarantees (#1,#2,#4,#5) still live only in `must-have.md` |
-| Dashboard (React) | ❌ Not started — Task 4 fast-follow |
+| Dashboard (React) | ✅ Done — see "Dashboard UI" / "Dashboard API" above. Live data needs Docker (Postgres) up. |
 | Twilio account/number provisioning | ⚠️ Unknown — `.env.example` has empty Twilio fields, can't verify from the repo; confirm with the team |
 
 ### Two conflicts to resolve first (flagged, not silently resolved)
