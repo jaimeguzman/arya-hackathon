@@ -329,7 +329,7 @@
       "Verify cache expiry triggers a fresh traversal. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit test with fake Redis asserts cache hit and miss behavior. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 26,

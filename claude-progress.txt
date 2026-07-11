@@ -1,3 +1,39 @@
+=== Session 13 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (164 passed);
+   safety tests 30 passed. Note: `make safety` currently resolves `python`
+   from an unrelated external venv on this machine — run tests via
+   `../.venv/bin/python -m pytest` instead (Makefile itself unchanged).
+2. Feature #25 (eligibility result caching in Redis) IMPLEMENTED, VERIFIED,
+   marked passing:
+   - NEW app/eligibility/cache.py: CachedEligibilityDecider wraps
+     decide_eligibility with RedisState's eligibility_cache:{zip}:{payer}:{plan}
+     key family (short TTL from ELIGIBILITY_CACHE_TTL_SECONDS). Cache hit
+     returns without re-running the decision engine; non-key inputs
+     (service_type, caregivers_available) are stored in the entry and any
+     mismatch is a miss; partial zip/payer/plan inputs are never cached.
+   - NEW tests/test_eligibility_cache.py: 6 tests — miss populates cache,
+     hit skips the engine (patched to raise if called), TTL expiry via a
+     clock-advancing FakeRedis triggers a fresh decision, configured TTL
+     asserted on write, non-key-input mismatch bypass, partial inputs
+     never cached.
+   - Full suite: 170 passed.
+   - Deliberately did NOT wire into eligibility_agent.py / routes/twilio.py —
+     both carry another agent's uncommitted WIP. Wire CachedEligibilityDecider
+     into the call path once that work lands.
+
+Status: 24/115 features passing (note: session 12's "24/115" overstated by
+one — the file had 23 true entries at session start; recounted from
+feature_list.json this session).
+
+Recommended next work (avoids foreign-dirty files):
+- Features #28-#39 (document pipeline layers) — independent new modules
+  under app/ (suggest app/pipeline/); #38 can reuse RedisState.pipeline_key.
+- infra features #1/#4/#5 still blocked on Docker Desktop.
+
 === Session 12 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
