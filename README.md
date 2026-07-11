@@ -116,23 +116,3 @@ Before every live call, verify the checklist in [`must-have.md`](./must-have.md)
 6. No medical advice, no premature “you're admitted”
 
 ---
-
-## Repository layout
-
-```
-arya-hackathon/
-├── PROJECT.md              # Product + architecture source of truth
-├── must-have.md            # Safety + must-have features
-├── WORKFLOW.md             # End-to-end voice + fax walkthrough
-├── docs/
-│   ├── ARCHITECTURE.md     # Diagrams + numbered flows
-│   ├── architecture-overview.png
-│   └── referral-lifecycle.png
-├── apis/                   # Intake API + safety layer
-├── ai-agents/              # Agent packages
-├── apps/dashboard/         # Frontend dashboard
-├── data/                   # Reference + synthetic seeds
-├── infra/                  # Infrastructure notes
-├── services/               # Supporting services
-└── local/                  # Parallel local demo stack (see note below)
-```
