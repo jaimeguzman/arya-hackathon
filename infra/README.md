@@ -10,7 +10,7 @@ Infrastructure, local orchestration, and data provisioning for IntakeAI.
 - Redis setup for pipeline state and caching.
 - Environment reference (`.env.example`) and service wiring.
 
-See [`../PROJECT.md`](../PROJECT.md) for the database architecture and the reasoning behind the 4-database design.
+See [`../PROJECT.md`](../PROJECT.md) for the database architecture and the reasoning behind the 4-database design. The seed/reference data itself (ICD-10 subset, diagnosis-certification mapping, payer rules, agency config, caregiver roster, referral sources, sample fax PDFs) already exists in [`../data`](../data) — see [`../data/README.md`](../data/README.md); this folder's `postgres/` and `neo4j/` directories should load from there, not re-author the data.
 
 ## Databases
 
@@ -26,8 +26,8 @@ See [`../PROJECT.md`](../PROJECT.md) for the database architecture and the reaso
 ```
 infra/
 ├── docker-compose.yml   # PostgreSQL, Neo4j, Redis, FastAPI, React
-├── postgres/            # Migrations + reference/lookup seed data
-├── neo4j/               # Cypher seed scripts (ICD-10 subset, mappings, rules)
+├── postgres/            # Migrations + loaders that read ../../data/reference + ../../data/synthetic
+├── neo4j/               # Cypher seed scripts that load ../../data/reference (ICD-10, mappings, payer rules)
 ├── twilio/              # ConversationRelay + number configuration notes
 └── README.md
 ```

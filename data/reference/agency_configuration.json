@@ -1,0 +1,31 @@
+{
+  "_note": "Synthetic agency configuration for the hackathon demo. Represents the 'do we serve this zip / what are our hours / how do people reach us' facts the Eligibility Agent and Voice Agent need independent of any single caregiver's assignment. Service area is derived from the union of data/synthetic/caregiver_roster.json zips plus a couple extra, but is stored as its own agency-level fact per PROJECT.md's Agency Configuration Data model.",
+  "agency": {
+    "name": "ABC Home Health",
+    "is_synthetic": true,
+    "phone": "555-030-9900",
+    "fax": "555-030-9901",
+    "operating_hours": {
+      "phone_intake": "24/7 (Voice Agent always answers)",
+      "human_coordinator_hours": "Mon-Fri 8:00am-6:00pm ET",
+      "fax_intake": "24/7 (Document Pipeline processes on arrival)"
+    },
+    "service_area_zips": [
+      "11201", "11215", "11217", "11231", "11225", "11226",
+      "10001", "10011", "10018", "10025", "10024",
+      "11101", "11106", "11109",
+      "10456", "10457", "10467",
+      "11375", "11374", "11379",
+      "11434", "11433", "11436",
+      "10314", "10306"
+    ],
+    "service_types_offered": [
+      "skilled_nursing",
+      "physical_therapy",
+      "occupational_therapy",
+      "speech_therapy",
+      "home_health_aide"
+    ],
+    "accepted_payers": ["Medicare", "Humana", "Aetna", "UnitedHealthcare", "State Medicaid"]
+  }
+}

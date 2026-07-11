@@ -8,9 +8,9 @@ Design and configuration for IntakeAI's conversational and processing agents —
 - Document Pipeline agents (Validation, Correction, Cross-Reference).
 - Eligibility Agent decision logic specs and prompt templates.
 - Guardrail definitions (clinical, operational, data) — see [Feature 6 in PROJECT.md](../PROJECT.md).
-- Knowledge grounding: ICD-10 subset, diagnosis→service→certification mappings, payer coverage rules.
+- Knowledge grounding: ICD-10 subset, diagnosis→service→certification mappings, payer coverage rules, agency service area, caregiver roster, referral-source history — all seeded in [`../data`](../data), see [`../data/README.md`](../data/README.md).
 
-See [`../PROJECT.md`](../PROJECT.md) for the full agent architecture and the two-layer Voice Agent control model. This folder owns agent behavior and prompt design — not the FastAPI wiring (that lives in [`../apis`](../apis)).
+See [`../PROJECT.md`](../PROJECT.md) for the full agent architecture and the two-layer Voice Agent control model, and [`../WORKFLOW.md`](../WORKFLOW.md) for the plain-English end-to-end walkthrough. This folder owns agent behavior and prompt design — not the FastAPI wiring (that lives in [`../apis`](../apis)).
 
 ## Agent inventory
 
