@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 
 from app.config import get_settings
+from app.routes.eligibility import router as eligibility_router
 from app.routes.health import router as health_router
+from app.routes.twilio import router as twilio_router
 from app.safety.db_guard import validate_database_url
 
 
@@ -12,6 +14,8 @@ def create_app() -> FastAPI:
         validate_database_url(settings.database_url)
     application = FastAPI(title="IntakeAI API")
     application.include_router(health_router)
+    application.include_router(eligibility_router)
+    application.include_router(twilio_router)
     return application
 
 

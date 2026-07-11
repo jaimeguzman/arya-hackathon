@@ -531,7 +531,7 @@
       "Verify TwiML/voice webhook configuration connects the Twilio number to the WebSocket URL (PUBLIC_BASE_URL). Expected result: the command/check completes successfully with no blocking errors.",
       "Integration test with a simulated ConversationRelay client completes a message round-trip. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 41,
@@ -545,7 +545,7 @@
       "Verify 'no' routes to transfer/graceful end with zero data collection. Expected result: the command/check completes successfully with no blocking errors.",
       "Test both branches via the simulated call harness. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 42,
@@ -889,7 +889,7 @@
       "Verify request validation rejects malformed payloads with 422. Expected result: the command/check completes successfully with no blocking errors.",
       "Integration tests cover each of the three outcomes. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 68,

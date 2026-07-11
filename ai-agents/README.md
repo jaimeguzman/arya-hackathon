@@ -14,13 +14,13 @@ See [`../PROJECT.md`](../PROJECT.md) for the full agent architecture and the two
 
 ## Agent inventory
 
-| Agent | Role |
-|---|---|
-| Intake Agent (Orchestrator) | Manages workflow state, routes tasks, makes admit/decline decisions |
-| Voice Agent | Handles Twilio calls; listens, speaks, extracts data; does NOT decide |
-| Eligibility Agent | Traverses PostgreSQL + Neo4j; returns ACCEPT / DECLINE / NEEDS_MORE_INFO |
-| Document Pipeline agents | Validation, Correction, Cross-Reference over extracted fields |
-| Follow-up Agent | SMS/email confirmations, retry logic, callback scheduling |
+| Agent | Role | Definition |
+|---|---|---|
+| Intake Agent (Orchestrator) | Manages workflow state, routes tasks, makes admit/decline decisions | pending |
+| Voice Agent | Handles Twilio calls; listens, speaks, extracts data; does NOT decide | [`voice-agent/`](voice-agent) — [provider](voice-agent/provider-mode.md), [family](voice-agent/family-mode.md), [outbound](voice-agent/outbound-mode.md) |
+| Eligibility Agent | Deterministic code over agency data; returns ACCEPT / DECLINE / NEEDS_MORE_INFO | `apis/api_intake/app/agents/eligibility_agent.py` (data-backed) + safety spec in `apis/api_intake/app/safety/eligibility.py` |
+| Document Pipeline agents | Validation, Correction, Cross-Reference over extracted fields | pending |
+| Follow-up Agent | SMS/email confirmations, retry logic, callback scheduling | pending (retry policy sketched in [`voice-agent/outbound-mode.md`](voice-agent/outbound-mode.md)) |
 
 ## Guardrails (must always hold)
 
