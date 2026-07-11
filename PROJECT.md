@@ -1,5 +1,7 @@
 # IntakeAI — Intelligent Patient Intake Agent for Home Health Agencies
 
+> This document is the architecture and product source of truth. [`must-have.md`](must-have.md) is its companion — the non-negotiable safety layer (5 checks, verified before every demo/test call) and the ranked app-level feature list. [`architecture.md`](architecture.md) is the diagram-and-steps reference derived from this document — use it for onboarding and implementation detail, but this file wins if they ever disagree.
+
 ## Hackathon
 
 - **Event**: AI Healthcare Hack NYC
@@ -222,6 +224,35 @@ Example flow during a live call:
 
 This entire loop must complete in 2-3 seconds. If longer, the Voice Agent uses natural filler: "Let me check our availability for that area... one moment."
 
+### Safety-Gated Call Flow (Non-Negotiable)
+
+The full call path has three safety components wrapped around the Voice Agent / Gemini Flash core. These are specified in detail — with code-level implementation and a pre-demo checklist — in [`must-have.md`](must-have.md) Part 1; this section states where each one sits architecturally so no implementation or diagram drops them.
+
+```
+Twilio ConversationRelay (call connects, STT streams live)
+     ↓
+Consent Gather  ← FIRST node of every call, before any data collection
+     ↓
+Voice Agent (talks, extracts data — makes no decisions)
+     ↓
+Tokenize / Rehydrate wrapper  ← identifiers stripped before the LLM ever sees them
+     ↓
+Gemini Flash (conversation reasoning)     +     check_eligibility() (deterministic code, NOT the LLM)
+     ↓                                                    ↓
+                    Banned-Phrase Filter  ← every response screened before it reaches TTS
+     ↓
+Twilio speaks the response → loops back to Voice Agent for the next turn
+```
+
+Rules this enforces (see `must-have.md` for full spec and check-before-every-run lists):
+
+- **Consent Gather is the first node**, full stop — no data collection happens before it, and a "no" routes to human transfer or a graceful end, never a dead end.
+- **Tokenize → LLM → Rehydrate**: no raw name, DOB, phone, address, or insurance ID is ever sent to Gemini Flash. Identifiers are placeholders in the prompt and are rehydrated only inside the backend after the LLM responds.
+- **`check_eligibility()` is deterministic code**, not an LLM judgment call — it runs in parallel with (not inside) the Gemini Flash reasoning step, against PostgreSQL + Neo4j lookups (zip match, insurance accepted, caregiver availability).
+- **Banned-Phrase Filter sits between every LLM response and TTS**, not just on Eligibility Agent output — it applies to Voice Agent responses in Provider mode, Family mode, and Outbound mode alike.
+
+Outbound calls (Feature 4) re-enter this exact same flow — an outbound call to a provider or family member is still a Twilio ConversationRelay call with the Voice Agent in Outbound mode, so it passes through the same Consent Gather → Tokenize/Rehydrate → Banned-Phrase Filter path, not a separate unguarded path.
+
 ---
 
 ## Document Pipeline (7 Layers + Agentic Review Loop)
@@ -399,6 +430,8 @@ A real-time dashboard showing:
 - Caregiver match results showing which caregivers were considered and why each was selected or ruled out
 - Referral source analytics — which hospitals send the most referrals, acceptance rates, average response times
 - Time-to-decision metrics — how fast are we responding to each referral
+
+Data source: primarily PostgreSQL (intake status, confidence scores, gap list, transcripts, event timestamps), joined with Neo4j for caregiver-match reasoning (which certification/zip/availability path each candidate matched or failed). The dashboard reads, it never writes eligibility or acceptance decisions.
 
 ---
 
@@ -581,6 +614,45 @@ Ephemeral, high-frequency read/write data:
 - **Databases**: PostgreSQL, Neo4j, Redis, pgvector
 - **Frontend Dashboard**: React (simple status dashboard for demo)
 - **Infrastructure**: Docker Compose (PostgreSQL, Neo4j, Redis, FastAPI, React dev server)
+
+---
+
+## Accounts & Credentials Setup
+
+Every account below maps to a line in the Tech Stack. Provision the **Required** ones before hackathon day — Twilio trial-account and UMLS approval delays are the two most likely to eat build time if left to the morning of. Never commit API keys/secrets to git — use a local `.env` (gitignored) and share values over a private channel, not in `PROJECT.md` or any other tracked file.
+
+### Required (blocks core functionality)
+
+| Account | Why | Notes |
+|---|---|---|
+| **Twilio** | Telephony backbone — mandatory for prize eligibility per the [challenge brief](#official-challenge-brief-strict--do-not-deviate) | Need: Account SID, Auth Token, a purchased phone number with Voice + SMS enabled, ConversationRelay access. **Upgrade from trial before the event** — trial accounts can only call/text verified numbers, which will break a live judge demo. |
+| **Google AI Studio / Google Cloud (Gemini API)** | Powers Gemini Flash for conversation reasoning, entity extraction, and vision-based document OCR (Layer 3 Path C) | Need an API key (aistudio.google.com) or a Google Cloud project with Vertex AI enabled. Watch rate limits on the free tier during a demo day with lots of test calls. |
+| **ngrok** (or equivalent tunnel) | Exposes the local FastAPI WebSocket/webhook server to the public internet so Twilio can reach it during dev and the live demo | Free tier works; a paid plan gives a stable subdomain so the Twilio webhook URL doesn't change on restart — worth it for demo-day reliability. |
+| **NLM UMLS Terminology Services (UTS)** | Required to download SNOMED CT and RxNorm data (used for diagnosis/medication reference data in Neo4j) | Free, but **approval can take 1–3 business days** — register at uts.nlm.nih.gov well before the event. Plain ICD-10-CM code tables are separately downloadable from CMS with no account needed. |
+| **Cursor** | Team's IDE per the build plan | One license/login per developer. |
+| **GitHub** | Repo hosting and team collaboration | Assumed already in place. |
+
+### Required at the end (not for building)
+
+| Account | Why |
+|---|---|
+| **Devpost** | Project submission — name, one-liner, writeup, tools used, team roles, live demo link, per [Requirements — What to Submit](#requirements--what-to-submit). |
+
+### Optional / situational
+
+| Account | Why | When to use it |
+|---|---|---|
+| **Deepgram or ElevenLabs** | Alternate STT/TTS providers pluggable into Twilio ConversationRelay | Only if Twilio's built-in STT/TTS voice quality or latency isn't good enough during testing. |
+| **Neo4j Aura (free tier)** | Managed cloud Neo4j instead of the Dockerized instance in the build plan | Only if local Docker Neo4j becomes a demo-day reliability risk (e.g., laptop resource constraints); otherwise Docker Compose is sufficient and needs no account. |
+| **Managed Postgres/Redis** (Railway, Supabase, Render, etc.) | Hosted alternative to the Dockerized instances | Same rationale as Neo4j Aura — only if local Docker becomes unreliable. Not in the base plan. |
+| **CMS NPI Registry API** | Physician NPI validation | Public API, no account or key required — listed here only so it isn't mistaken for a signup requirement. |
+
+### Suggested ownership (maps to Hackathon Build Plan phases)
+
+- **Person 1** (Voice Agent / FastAPI) → Twilio, ngrok
+- **Person 2** (Document Pipeline) → Google AI Studio/Gemini, UMLS/NLM
+- **Person 3** (Eligibility Engine / DBs) → Neo4j Aura if needed, Postgres/Redis if managed
+- **Person 4** (Orchestrator / Twilio config) → Twilio (co-owns with Person 1), Devpost submission at the end
 
 ---
 

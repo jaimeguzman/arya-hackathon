@@ -6,6 +6,7 @@ Project for Arya Hackathon.
 
 ## Documentation
 
-See the [`docs`](./docs) folder for additional project documentation.
-- [`PROJECT.md`](./PROJECT.md) — fuente de verdad: problema, arquitectura y plan de construcción de IntakeAI.
-- Consulta la carpeta [`docs`](./docs) para documentación adicional del proyecto.
+- [`PROJECT.md`](./PROJECT.md) — source of truth: problem, architecture, and build plan for IntakeAI.
+- [`must-have.md`](./must-have.md) — non-negotiable safety layer (5 checks before every demo) and must-have features.
+- [`architecture.md`](./architecture.md) — detailed architecture reference: diagrams and step-by-step flows.
+- See the [`docs`](./docs) folder for additional project documentation.
