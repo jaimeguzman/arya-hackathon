@@ -51,7 +51,10 @@ class DocumentService:
 
     @staticmethod
     def notify_processor(document_id: UUID) -> None:
-        logger.info("document %s ready for Phase 4 processor", document_id)
+        # kept for compatibility — prefer DocumentProcessor.process via BackgroundTasks
+        from backend.workers.document_processor import DocumentProcessor
+
+        DocumentProcessor().process_sync(document_id)
 
     async def get(self, session: AsyncSession, document_id: UUID) -> Document:
         row = await session.get(Document, document_id)

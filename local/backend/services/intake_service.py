@@ -128,6 +128,12 @@ class IntakeService:
         self, session: AsyncSession, intake_id: UUID, body: IntakeRecordUpdate
     ) -> IntakeRecord:
         row = await self.get(session, intake_id)
+        previous = {
+            "patient_data": dict(row.patient_data or {}),
+            "insurance_data": dict(row.insurance_data or {}),
+            "clinical_data": dict(row.clinical_data or {}),
+            "care_request": dict(row.care_request or {}),
+        }
         data = body.model_dump(exclude_unset=True)
         gaps = list(row.gaps or [])
 
@@ -156,6 +162,15 @@ class IntakeService:
 
         await session.flush()
         await session.refresh(row)
+        # eligibility watcher (Phase 4)
+        try:
+            from backend.workers.eligibility_watcher import on_intake_updated
+
+            await on_intake_updated(session, row, previous=previous)
+            await session.flush()
+            await session.refresh(row)
+        except Exception:
+            pass
         return row
 
     def _merge_jsonb(

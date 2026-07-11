@@ -16,9 +16,12 @@ from backend.models.schemas import (
 )
 from backend.models.tables import DocumentProcessingStatus
 from backend.services.document_service import DocumentService
+from backend.workers.document_processor import DocumentProcessor
+from backend.models.database import get_redis
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 _service = DocumentService()
+_processor = DocumentProcessor()
 
 
 @router.post("/upload", response_model=DocumentUploadResponse)
@@ -29,7 +32,7 @@ async def upload_document(
     session: AsyncSession = Depends(get_db),
 ) -> DocumentUploadResponse:
     row = await _service.save_upload(session, file, intake_record_id)
-    background_tasks.add_task(DocumentService.notify_processor, row.id)
+    background_tasks.add_task(_processor.process, row.id)
     return DocumentUploadResponse(
         id=row.id,
         file_name=row.file_name,
@@ -43,13 +46,24 @@ async def document_status(
     document_id: UUID, session: AsyncSession = Depends(get_db)
 ) -> DocumentStatusResponse:
     row = await _service.get(session, document_id)
+    current_layer = None
+    try:
+        redis = get_redis()
+        raw = await redis.get(f"pipeline:{document_id}")
+        if raw:
+            import json
+
+            current_layer = json.loads(raw).get("current_layer")
+    except Exception:
+        current_layer = None
+    er = row.extraction_result or {}
     return DocumentStatusResponse(
         id=row.id,
         status=row.processing_status,
-        current_layer=None,
-        extraction_result=row.extraction_result or {},
-        confidence_scores={},
-        gaps=[],
+        current_layer=current_layer,
+        extraction_result=er,
+        confidence_scores=er.get("confidence_scores") or {},
+        gaps=er.get("gaps") or [],
     )
 
 

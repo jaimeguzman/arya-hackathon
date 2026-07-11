@@ -1,0 +1,22 @@
+{
+  "payer_aliases": {
+    "uhc": "UnitedHealthcare",
+    "united": "UnitedHealthcare",
+    "bcbs": "Blue Cross Blue Shield",
+    "blue cross": "Blue Cross Blue Shield",
+    "aetna": "Aetna",
+    "medicare": "Medicare",
+    "mcare": "Medicare"
+  },
+  "service_type_aliases": {
+    "pt": "physical_therapy",
+    "physical therapy": "physical_therapy",
+    "physio": "physical_therapy",
+    "ot": "occupational_therapy",
+    "st": "speech_therapy",
+    "sn": "skilled_nursing",
+    "skilled nursing": "skilled_nursing",
+    "hha": "home_health_aide",
+    "msw": "medical_social_work"
+  }
+}

@@ -11,19 +11,23 @@ from sqlalchemy import text
 
 from backend.api import caregivers, documents, eligibility, followup, intake, voice
 from backend.models.database import close_all_dbs, get_neo4j, get_redis, get_sessionmaker, init_all_dbs
+from backend.workers.followup_scheduler import get_scheduler
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     await init_all_dbs()
+    sched = get_scheduler()
+    sched.start()
     yield
+    await sched.stop()
     await close_all_dbs()
 
 
 app = FastAPI(
     title="IntakeAI",
-    description="Home health intake API — Phase 3",
-    version="0.3.0",
+    description="Home health intake API — Phase 4",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
@@ -48,7 +52,7 @@ app.include_router(voice.router)
 async def health() -> dict[str, Any]:
     status = {
         "service": "IntakeAI",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "postgres": "error",
         "neo4j": "error",
         "redis": "error",
