@@ -1,3 +1,41 @@
+=== Session 20 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: 230 passed outside sandbox (the 2 in-sandbox
+   failures are the known *.pem-read sandbox artifact).
+2. Feature #33 (Layer 5 Validation Agent) IMPLEMENTED, VERIFIED, marked
+   passing:
+   - NEW app/pipeline/validation.py: ValidationRecord/-Failure/-Report;
+     checks for ICD-10 (reference table), NPI (Luhn always + NPPES
+     registry when online, offline returns None and Luhn still gates),
+     member-ID payer format (reuses PAYER_MEMBER_ID_FORMATS matcher),
+     DOB reasonableness (future / >120y), discharge >= admission,
+     zip existence, medication dosage ranges (mg parse + range;
+     Metformin 50000mg flagged as OCR error).
+   - NEW data/reference/zip_codes.json and
+     data/reference/medication_dosage_ranges.json (the two reference
+     tables app_spec lists that did not exist yet; also progresses
+     feature #8).
+   - NEW tests/test_pipeline_validation.py: 16 tests, one passing
+     record + one failure per validator. Suite total: 246 passed.
+3. Doc sync BLOCKED: edit hooks reject both data/README.md (subdir
+   README rule) and WORKFLOW.md (root .md rule). Pending updates:
+   - data/README.md: document the 2 new reference files.
+   - WORKFLOW.md "What's pending": Document Pipeline row is stale
+     ("Not started") - Layers 1-4 + Layer 5 validation are done.
+
+Status: 32/115 features passing.
+
+Recommended next work:
+- Feature #34 (Layer 5 Correction Agent): reason about
+  ValidationFailure records with confidence tiers (auto-correct /
+  flag-review / gap-list); validation.py rule names are the contract.
+- Then #35 (Cross-Reference Agent), #36-#37 (Layers 6-7).
+- NPPES live lookup unverified from this machine (sandbox blocks the
+  host); offline fallback verified. Try once outside sandbox when
+  network policy allows.
 === Session 19 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
