@@ -1,9 +1,9 @@
 # Arya Hackathon
 
-## Descripción
+## Description
 
-Proyecto para Arya Hackathon.
+Project for Arya Hackathon.
 
-## Documentación
+## Documentation
 
-Consulta la carpeta [`docs`](./docs) para documentación adicional del proyecto.
+See the [`docs`](./docs) folder for additional project documentation.
