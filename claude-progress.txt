@@ -1,3 +1,38 @@
+=== Session 6 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Found UNCOMMITTED work from a prior session (routes/twilio.py,
+   agents/eligibility_agent.py, routes/eligibility.py, tests, ai-agents/
+   voice-agent/ prompt docs) with 1 failing test.
+2. Fixed the bug: routes/twilio.py used resolve_plan() (short-phrase fuzzy
+   match) on full utterances; switched to find_plan_in_text() (token-based
+   free-form matcher). Full suite green.
+3. Completed step coverage and VERIFIED features:
+   - #40 (ConversationRelay WS handler): added interrupt-message test;
+     setup/prompt/interrupt round-trip + TwiML webhook tests pass.
+   - #41 (consent gather node): first-message disclosure, yes persists
+     consent_given, no -> handoff with zero data collection, both branches
+     tested via simulated WS harness.
+   - #67 (POST /eligibility-check): added 422 malformed-payload test and
+     DECLINE / NEEDS_MORE_INFO endpoint tests (all 3 outcomes covered).
+4. Committed everything (d18a6c8). Full suite: 93 passed.
+
+Status: 17/115 features passing.
+
+Known gaps / still blocked:
+- Docker daemon still NOT running — #1/#4/#5/#21/#22/#25 blocked.
+- .env.example still not writable in sandbox (REFERENCE_DATA_DIR entry
+  pending). WORKFLOW.md snapshot update still blocked by doc hook.
+
+Recommended next work:
+- Feature #26 (only Eligibility Agent writes decisions) — code-level
+  enforcement + unit test, no DB needed.
+- Features #45/#46/#47 (provider/family/patient modes) — prompt docs now
+  exist under ai-agents/voice-agent/; wire mode routing (#42-#44) into
+  routes/twilio.py.
+
 === Session 5 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
