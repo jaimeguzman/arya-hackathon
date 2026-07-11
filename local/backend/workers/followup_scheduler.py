@@ -31,7 +31,7 @@ class FollowUpScheduler:
 
     def start(self) -> None:
         if self._task is None:
-            self._stop.clear()
+            self._stop = asyncio.Event()
             self._task = asyncio.create_task(self._loop())
 
     async def stop(self) -> None:
@@ -40,7 +40,7 @@ class FollowUpScheduler:
             self._task.cancel()
             try:
                 await self._task
-            except asyncio.CancelledError:
+            except (asyncio.CancelledError, RuntimeError):
                 pass
             self._task = None
 
@@ -87,11 +87,41 @@ class FollowUpScheduler:
         elif row.type == FollowUpType.eligibility_recheck:
             row.status = FollowUpStatus.completed
             row.executed_at = datetime.now(timezone.utc)
-            row.result = {"stub": True, "channel": "eligibility_recheck"}
+            row.result = {"channel": "eligibility_recheck"}
+            try:
+                from backend.agents.orchestrator import get_orchestrator
+
+                await get_orchestrator().resume(
+                    row.intake_record_id, event="eligibility_recheck"
+                )
+            except Exception:
+                logger.exception("orchestrator eligibility_recheck resume failed")
         elif row.type == FollowUpType.outbound_call_attempted:
-            row.status = FollowUpStatus.completed
             row.executed_at = datetime.now(timezone.utc)
-            row.result = {"stub": True, "channel": "outbound_call"}
+            if not row.target_phone:
+                row.status = FollowUpStatus.failed
+                row.result = {"error": "missing_target_phone"}
+                await self._fail(session, row)
+                return
+            try:
+                from backend.api.voice import voice_outbound
+                from backend.models.schemas import VoiceOutboundRequest
+
+                result = await voice_outbound(
+                    VoiceOutboundRequest(
+                        to=row.target_phone,
+                        mission=row.message or "follow-up",
+                        intake_record_id=row.intake_record_id,
+                    )
+                )
+                row.status = FollowUpStatus.completed
+                row.result = result if isinstance(result, dict) else {"result": result}
+            except Exception as exc:
+                logger.exception("outbound dial failed")
+                row.status = FollowUpStatus.failed
+                row.result = {"error": str(exc)}
+                await self._fail(session, row)
+                return
         else:
             logger.warning("unknown followup type %s", row.type)
             row.status = FollowUpStatus.failed

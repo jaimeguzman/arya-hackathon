@@ -193,6 +193,14 @@ class DocumentProcessor:
                     document_id,
                     doc.intake_record_id,
                 )
+                try:
+                    from backend.agents.orchestrator import get_orchestrator
+
+                    await get_orchestrator().on_document_complete(
+                        document_id, doc.intake_record_id
+                    )
+                except Exception:
+                    logger.exception("orchestrator on_document_complete failed")
             except Exception:
                 logger.exception("pipeline failed for %s", document_id)
                 # determine layer from status

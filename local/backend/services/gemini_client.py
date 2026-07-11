@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from backend.config import get_settings
 
@@ -33,7 +33,6 @@ class FakeGeminiClient:
             if key.lower() in prompt.lower():
                 return val
         pl = prompt.lower()
-        # extraction prompts append "Page classification:" — match extract first
         if "extract" in pl or "page classification:" in pl:
             return json.dumps(
                 {
@@ -56,12 +55,44 @@ class FakeGeminiClient:
                     "can_correct": True,
                 }
             )
-        return "{}"
+        if "caller_type" in pl or "identify" in pl:
+            return json.dumps(
+                {
+                    "response": "Thanks for calling. How can I help with this referral?",
+                    "extracted": {},
+                    "caller_type": "provider",
+                    "needs_clarification": [],
+                    "ready_for_eligibility": False,
+                    "caller_distress": False,
+                    "clinical_question": False,
+                }
+            )
+        return json.dumps(
+            {
+                "response": "Thank you. Could you share the patient's zip code and insurance?",
+                "extracted": {},
+                "needs_clarification": ["zip_code", "payer_name"],
+                "ready_for_eligibility": False,
+                "caller_distress": False,
+                "clinical_question": False,
+            }
+        )
 
     def generate_vision(
         self, image_bytes: bytes, prompt: str, mime: str = "image/png"
     ) -> str:
         return self.generate_text(prompt)
+
+    def chat(
+        self,
+        system_prompt: str,
+        history: list[dict[str, str]],
+        user_message: str,
+    ) -> str:
+        combined = system_prompt + "\n" + user_message
+        for h in history:
+            combined += "\n" + h.get("content", "")
+        return self.generate_text(combined)
 
 
 class GeminiClient:
@@ -70,6 +101,7 @@ class GeminiClient:
     ) -> None:
         self._injected = client
         self._model = None
+        self._genai = None
         if client is not None:
             return
         key = api_key if api_key is not None else get_settings().gemini_api_key
@@ -78,6 +110,7 @@ class GeminiClient:
         import google.generativeai as genai
 
         genai.configure(api_key=key)
+        self._genai = genai
         self._model = genai.GenerativeModel(MODEL_ID)
 
     def generate_text(self, prompt: str) -> str:
@@ -94,6 +127,26 @@ class GeminiClient:
         resp = self._model.generate_content(
             [{"mime_type": mime, "data": image_bytes}, prompt]
         )
+        return getattr(resp, "text", None) or str(resp)
+
+    def chat(
+        self,
+        system_prompt: str,
+        history: list[dict[str, str]],
+        user_message: str,
+    ) -> str:
+        if self._injected is not None:
+            return self._injected.chat(system_prompt, history, user_message)
+        model = self._genai.GenerativeModel(
+            MODEL_ID, system_instruction=system_prompt
+        )
+        gem_hist = []
+        for msg in history:
+            role = msg.get("role", "user")
+            gem_role = "user" if role in ("user", "human") else "model"
+            gem_hist.append({"role": gem_role, "parts": [msg.get("content", "")]})
+        chat = model.start_chat(history=gem_hist)
+        resp = chat.send_message(user_message)
         return getattr(resp, "text", None) or str(resp)
 
 

@@ -26,8 +26,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="IntakeAI",
-    description="Home health intake API — Phase 4",
-    version="0.4.0",
+    description="Home health intake API — Phase 5",
+    version="0.5.0",
     lifespan=lifespan,
 )
 
@@ -52,7 +52,7 @@ app.include_router(voice.router)
 async def health() -> dict[str, Any]:
     status = {
         "service": "IntakeAI",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "postgres": "error",
         "neo4j": "error",
         "redis": "error",

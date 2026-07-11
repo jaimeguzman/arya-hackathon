@@ -297,9 +297,23 @@ class VoiceTestRequest(BaseModel):
 
 class VoiceTestResponse(BaseModel):
     session_id: str
-    reply: str
+    response: str
+    extracted: dict[str, Any] = Field(default_factory=dict)
+    accumulated_data: dict[str, Any] = Field(default_factory=dict)
+    ready_for_eligibility: bool = False
+    eligibility_result: Optional[dict[str, Any]] = None
+    guardrail_violations: list[Any] = Field(default_factory=list)
+    conversation_mode: Optional[str] = None
 
 
 class VoiceOutboundRequest(BaseModel):
     to: str
     mission: str
+    person_name: Optional[str] = None
+    role: Optional[str] = None
+    facility_name: Optional[str] = None
+    patient_name: Optional[str] = None
+    known_data: Optional[dict[str, Any]] = None
+    gaps: Optional[list[Any]] = None
+    intake_record_id: Optional[UUID] = None
+    callback_number: Optional[str] = None
