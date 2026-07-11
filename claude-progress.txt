@@ -1,3 +1,42 @@
+=== Session 5 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (54 passed).
+2. Features #23 (coverage rules) and #24 (decision engine bias) VERIFIED and
+   marked passing:
+   - checks.py: check_coverage() — plan COVERS service-type cross-check
+     (uncovered -> DECLINE with reason), requires_prior_auth surfaces
+     'prior authorization required' as a documentation need; CheckResult
+     gained fuzzy flag + documentation_needs.
+   - decision.py: decide_eligibility() composes service-area, insurance,
+     and coverage checks. DECLINE only on black-and-white facts; any
+     ambiguity (missing fields, fuzzy plan match, caregivers_available
+     None/False) -> NEEDS_MORE_INFO with specific items. Prior-auth needs
+     carried into ACCEPT/NEEDS_MORE_INFO decisions.
+   - tests/test_eligibility_decision.py: 17 tests incl. parametrized
+     "ambiguity never DECLINEs". Full suite: 81 passed.
+
+Known gaps / still blocked:
+- .env.example REFERENCE_DATA_DIR entry still blocked (sandbox denies all
+  .env.* reads/writes; permission also denied when requested). Carry over.
+- WORKFLOW.md progress-snapshot update still blocked by documentation hook
+  (.md edits restricted). Doc sync pending: Eligibility Agent now 4/7 done
+  (19/20/23/24); Neo4j traversal (#21), availability (#22), Redis cache
+  (#25) pending on Docker.
+- Docker daemon still NOT running — #1/#4/#5/#21/#22/#25 blocked.
+- Untracked folder ai-agents/voice-agent/ (family-mode.md, provider-mode.md,
+  README.md) appeared — likely teammate prompt-design work; NOT committed,
+  flagging per protocol.
+
+Status: 14/115 features passing.
+
+Recommended next work:
+- Feature #26 (only Eligibility Agent writes decisions) — enforceable in
+  code without DB.
+- #21/#22/#25 once Docker/Neo4j/Redis are available.
+
 === Session 4 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
