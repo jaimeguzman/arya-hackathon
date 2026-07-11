@@ -1,3 +1,40 @@
+=== Session 22 - Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: 253 passed outside sandbox (the 2 in-sandbox
+   failures remain the known *.pem-read sandbox artifact).
+2. Feature #35 (Layer 5 Cross-Reference Agent) IMPLEMENTED, VERIFIED,
+   marked passing:
+   - NEW app/pipeline/cross_reference.py: cross_reference_documents(
+     documents, reference) checks packet-level consistency:
+     patient name mismatch across documents (order/punctuation
+     insensitive: 'Chen, Margaret' == 'MARGARET CHEN'), DOB mismatch,
+     diagnosis text vs ICD-10 description agreement (content-word
+     overlap against icd10_top30_home_health.json descriptions;
+     unknown codes left to the Validation Agent), and
+     medication-without-indication (Warfarin/Apixaban with no
+     anticoagulation ICD prefix anywhere in the packet -> routing
+     CLINICAL_REVIEW; identity/coding flags -> VERIFICATION).
+   - NEW data/reference/medication_indication_rules.json (indication
+     ICD prefixes per medication; also progresses feature #8).
+   - NEW tests/test_pipeline_cross_reference.py: 12 tests, one per
+     rule plus clean-packet, cross-document indication, name
+     normalization. Full suite: 265 passed.
+3. Doc-sync gaps from sessions 20-21 still pending (edit hooks block
+   data/README.md and WORKFLOW.md).
+
+Status: 34/115 features passing.
+
+Recommended next work:
+- Feature #36 (Layer 6 completeness/gap checklist) - can reuse GapItem
+  from correction.py; requirements checklist per app_spec layer 6.
+- Then #37 (Layer 7 confidence scoring and routing) which composes
+  validation + correction + cross-reference outputs.
+- Docker still down: features #1/#4/#5, #21/#22 (Neo4j), #25 (Redis)
+  remain blocked for e2e verification.
+
 === Session 21 - Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize

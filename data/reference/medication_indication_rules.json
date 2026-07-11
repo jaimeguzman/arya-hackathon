@@ -1,0 +1,21 @@
+{
+  "_source": "Clinical indication rules for medications that should not appear without a supporting diagnosis, per FDA prescribing information. Curated to the medications in medication_dosage_ranges.json that carry a hard indication requirement. Used by the document pipeline Layer 5 Cross-Reference Agent (e.g. Warfarin without any anticoagulation indication -> flag for clinical review).",
+  "_note": "icd_prefixes are matched as ICD-10-CM code prefixes across all documents in the referral packet. A match on any prefix satisfies the indication.",
+  "medications": [
+    {
+      "name": "Warfarin",
+      "indication": "anticoagulation",
+      "icd_prefixes": ["I48", "I26", "I82", "I63", "Z79.01", "Z95.2"]
+    },
+    {
+      "name": "Apixaban",
+      "indication": "anticoagulation",
+      "icd_prefixes": ["I48", "I26", "I82", "I63", "Z79.01"]
+    },
+    {
+      "name": "Levothyroxine",
+      "indication": "thyroid disorder",
+      "icd_prefixes": ["E03", "E89.0", "C73"]
+    }
+  ]
+}

@@ -464,7 +464,7 @@
       "Verify medication-diagnosis inconsistency (Warfarin without anticoagulation indication) is flagged for clinical review. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit tests cover each cross-reference rule. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 36,
