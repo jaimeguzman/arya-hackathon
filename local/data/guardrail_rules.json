@@ -1,0 +1,262 @@
+{
+  "blocked_patterns": [
+    {
+      "name": "full_ssn_exposure",
+      "pattern": "(?i)(SSN|social\\s*security).{0,40}\\d{3}-?\\d{2}-?\\d{4}|\\d{3}-?\\d{2}-?\\d{4}.{0,40}(SSN|social\\s*security)",
+      "reason": "HIPAA — full SSN must never be read aloud",
+      "replacement": "I'm not able to share that information over the phone.",
+      "severity": "critical"
+    },
+    {
+      "name": "ssn_digits_alone",
+      "pattern": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+      "reason": "HIPAA — SSN-shaped number must not appear in speech",
+      "replacement": "I'm not able to share that information over the phone.",
+      "severity": "critical"
+    },
+    {
+      "name": "medical_advice",
+      "pattern": "(?i)\\byou (should|must|need to) take\\b",
+      "reason": "Agent is intake coordinator, not a clinician",
+      "replacement": "I'd recommend discussing that with your doctor. Our clinical team can address that once care begins.",
+      "severity": "critical"
+    },
+    {
+      "name": "premature_admission",
+      "pattern": "(?i)\\byou are (admitted|accepted|approved)\\b",
+      "reason": "Legal liability — admission only after eligibility confirmation",
+      "replacement": "Based on our initial review, we should be able to help. Our coordinator will confirm the details.",
+      "severity": "critical"
+    },
+    {
+      "name": "guarantee_language",
+      "pattern": "(?i)\\bguarantee\\b",
+      "reason": "No guarantees about healthcare outcomes or service delivery",
+      "replacement": "We aim to support your referral and will confirm next steps with our coordinator.",
+      "severity": "critical"
+    },
+    {
+      "name": "specific_caregiver_promise",
+      "pattern": "(?i)\\byour (nurse|caregiver) (will be|is)\\b",
+      "reason": "Staffing assigns caregivers; names can change",
+      "replacement": "We'll match you with a qualified nurse in your area.",
+      "severity": "critical"
+    },
+    {
+      "name": "specific_visit_date_promise",
+      "pattern": "(?i)\\byour (first visit|appointment) (is on|is at|will be on|will be at)\\b",
+      "reason": "Scheduling happens after admission",
+      "replacement": "We aim to start care within 48 hours of completing the referral.",
+      "severity": "critical"
+    },
+    {
+      "name": "full_member_id_readback",
+      "pattern": "(?i)\\b(member\\s*id|insurance\\s*id)\\b[^.]{0,40}\\b[A-Z0-9]{8,}\\b",
+      "reason": "Sensitive data — confirm last 4 digits only",
+      "replacement": "I have a member ID ending in the last four digits on file.",
+      "severity": "critical"
+    },
+    {
+      "name": "family_diagnosis_disclosure",
+      "pattern": "(?i)\\b(primary diagnosis|ICD-?10|discharge diagnosis|clinical diagnosis)\\b.{0,60}\\b(is|was|shows|indicates)\\b",
+      "reason": "Family mode — do not deliver clinical details family has not stated",
+      "replacement": "Your loved one's doctor has provided us with the clinical details. Our care coordinator can discuss the care plan with you.",
+      "severity": "warning",
+      "modes": ["family"]
+    },
+    {
+      "name": "family_jargon_icd10",
+      "pattern": "(?i)\\bICD-?10\\b",
+      "reason": "Family mode — avoid clinical jargon",
+      "replacement": "the diagnosis information from your doctor",
+      "severity": "warning",
+      "modes": ["family"]
+    },
+    {
+      "name": "family_jargon_npi",
+      "pattern": "(?i)\\bNPI\\b",
+      "reason": "Family mode — avoid clinical jargon",
+      "replacement": "your doctor's provider number",
+      "severity": "warning",
+      "modes": ["family"]
+    },
+    {
+      "name": "family_jargon_f2f",
+      "pattern": "(?i)\\b(F2F|face[- ]to[- ]face)\\b",
+      "reason": "Family mode — avoid clinical jargon",
+      "replacement": "the visit documentation from your doctor",
+      "severity": "warning",
+      "modes": ["family"]
+    },
+    {
+      "name": "family_jargon_homebound",
+      "pattern": "(?i)\\bhomebound\\b",
+      "reason": "Family mode — avoid clinical jargon",
+      "replacement": "whether leaving home for care is difficult",
+      "severity": "warning",
+      "modes": ["family"]
+    }
+  ],
+  "confidence_thresholds": {
+    "eligibility_confirm_threshold": 0.7,
+    "field_auto_populate_threshold": 0.5,
+    "field_reject_threshold": 0.3,
+    "correction_accept_threshold": 0.8,
+    "caller_identification_threshold": 0.8,
+    "cert_expiry_warn_days": 7,
+    "critical_fields": [
+      "insurance_member_id",
+      "patient_name",
+      "primary_diagnosis",
+      "icd_code"
+    ]
+  },
+  "escalation_triggers": [
+    {
+      "name": "human_request",
+      "description": "Caller explicitly asks for a human, person, coordinator, manager, or supervisor",
+      "detection_method": "keyword-based",
+      "action": "Acknowledge, say a coordinator will follow up, end session, create high-priority follow-up",
+      "priority": "high",
+      "priority_rank": 1,
+      "keywords": [
+        "speak to a person",
+        "talk to someone",
+        "real person",
+        "human",
+        "your manager",
+        "supervisor",
+        "coordinator",
+        "someone real"
+      ]
+    },
+    {
+      "name": "caller_distress",
+      "description": "Caller is crying, shouting, or expressing extreme frustration",
+      "detection_method": "LLM-inferred",
+      "action": "Acknowledge emotion, offer human coordinator without forcing escalation",
+      "priority": "high",
+      "priority_rank": 2,
+      "state_flag": "caller_distress"
+    },
+    {
+      "name": "clinical_question",
+      "description": "Caller asks a question requiring clinical judgment",
+      "detection_method": "LLM-inferred",
+      "action": "Redirect to clinical staff / care coordinator",
+      "priority": "medium",
+      "priority_rank": 3,
+      "state_flag": "clinical_question"
+    },
+    {
+      "name": "data_conflict_unresolvable",
+      "description": "Caller data contradicts intake record and merge rule cannot auto-resolve",
+      "detection_method": "event-based",
+      "action": "Flag both values, schedule human review",
+      "priority": "medium",
+      "priority_rank": 4,
+      "state_flag": "unresolvable_conflict"
+    },
+    {
+      "name": "repeated_misunderstanding",
+      "description": "Agent failed to understand caller 3+ consecutive turns",
+      "detection_method": "count-based",
+      "action": "Apologize and offer coordinator connection",
+      "priority": "medium",
+      "priority_rank": 5,
+      "threshold_count": 3,
+      "state_key": "misunderstanding_count"
+    },
+    {
+      "name": "off_topic_persistent",
+      "description": "Caller repeatedly steers off topic after redirects",
+      "detection_method": "count-based",
+      "action": "Offer separate call or coordinator after threshold redirects",
+      "priority": "low",
+      "priority_rank": 6,
+      "threshold_count": 3,
+      "state_key": "off_topic_redirect_count"
+    },
+    {
+      "name": "max_call_duration",
+      "description": "Call approaching or past max duration",
+      "detection_method": "time-based",
+      "action": "At wrap_up_minutes inject wrap-up; at max_minutes summarize and end",
+      "priority": "low",
+      "priority_rank": 7,
+      "wrap_up_minutes": 12,
+      "max_minutes": 15,
+      "wrap_up_priority_rank": 8,
+      "end_call_priority_rank": 7
+    }
+  ],
+  "merge_rules": [
+    {
+      "name": "contact_info_caller_wins",
+      "fields": [
+        "patient_phone",
+        "patient_address",
+        "emergency_contact_name",
+        "emergency_contact_phone",
+        "patient_language"
+      ],
+      "winner": "caller",
+      "reason": "Caller has current information; fax may be outdated",
+      "action": "overwrite"
+    },
+    {
+      "name": "clinical_data_fax_wins",
+      "fields": [
+        "icd_codes",
+        "primary_diagnosis",
+        "secondary_diagnoses",
+        "physician_orders",
+        "medications",
+        "procedures",
+        "diagnosis_details"
+      ],
+      "winner": "fax",
+      "reason": "Clinical documents are authoritative",
+      "action": "overwrite"
+    },
+    {
+      "name": "insurance_flag_conflict",
+      "fields": [
+        "payer_name",
+        "plan_type",
+        "member_id",
+        "group_number"
+      ],
+      "winner": "flag",
+      "reason": "Wrong insurance means denied claims — human must verify",
+      "action": "keep_both"
+    },
+    {
+      "name": "patient_name_keep_complete",
+      "fields": ["patient_name"],
+      "winner": "more_complete",
+      "reason": "Keep the more complete name variant and flag for review",
+      "action": "flag_for_review"
+    },
+    {
+      "name": "physician_data_fax_wins",
+      "fields": [
+        "physician_name",
+        "physician_npi",
+        "physician_phone",
+        "physician_fax",
+        "physician_orders"
+      ],
+      "winner": "fax",
+      "reason": "Fax is authoritative for physician identity and orders",
+      "action": "overwrite"
+    },
+    {
+      "name": "default_keep_both",
+      "fields": ["*"],
+      "winner": "flag",
+      "reason": "Never silently discard unmapped conflicting data",
+      "action": "keep_both"
+    }
+  ]
+}
