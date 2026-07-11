@@ -1,6 +1,6 @@
 """CI safety suite — one section per must-have.md Part 1 guarantee (1-6).
 
-If any test here fails, the build fails (see apis/Makefile `safety` target).
+If any test here fails, the build fails (see apis/api_intake/Makefile `safety` target).
 """
 
 import pytest
@@ -61,6 +61,19 @@ def test_boot_aborts_on_non_allowlisted_db():
 def test_boot_accepts_demo_db():
     url = "postgresql://u:p@localhost:5432/intakeai_demo"
     assert validate_database_url(url) == url
+
+
+def test_create_app_aborts_on_non_allowlisted_db(monkeypatch):
+    from app.config import get_settings
+    from app.main import create_app
+
+    get_settings.cache_clear()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost:5432/production_phi")
+    try:
+        with pytest.raises(DisallowedDatabaseError):
+            create_app()
+    finally:
+        get_settings.cache_clear()
 
 
 # --- Guarantee 2: tokenize -> LLM -> rehydrate ------------------------------

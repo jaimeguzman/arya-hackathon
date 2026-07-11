@@ -133,14 +133,14 @@
     "id": 11,
     "category": "functional",
     "app": "apis",
-    "description": "Safety guarantee 1: fake data only \u2014 is_synthetic enforced on every DB write",
+    "description": "Safety guarantee 1: fake data only — is_synthetic enforced on every DB write",
     "spec_reference": "safety_requirements/guarantee 1",
     "steps": [
       "Verify the DB write layer hard-asserts is_synthetic is true and raises on any record missing or false. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify the app refuses to boot unless DATABASE_URL matches an allowlisted demo database name. Expected result: the command/check completes successfully with no blocking errors.",
       "Test in test_safety_layer.py: writing a non-synthetic record raises; booting against a non-allowlisted DB name aborts. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 12,
@@ -160,7 +160,7 @@
       "Verify vision-path document images are handled per the same policy (identifier fields tokenized in accompanying text prompts). Expected result: the command/check completes successfully with no blocking errors.",
       "Test in test_safety_layer.py: payload containing a raw phone number is rejected; tokenized round-trip restores original values. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 13,
@@ -173,7 +173,7 @@
       "Verify the response-generation function requires a pre-computed EligibilityResult object as a mandatory input parameter. Expected result: the command/check completes successfully with no blocking errors.",
       "Test in test_safety_layer.py: clear-yes case returns ACCEPT, clear-no returns DECLINE, ambiguous returns NEEDS_MORE_INFO. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 14,
@@ -187,7 +187,7 @@
       "Verify a 'no' answer routes to human transfer or graceful end with zero data collection. Expected result: the command/check completes successfully with no blocking errors.",
       "Test in test_safety_layer.py: data collection without consent raises; consent 'no' produces the handoff path. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 15,
@@ -200,20 +200,20 @@
       "Verify there is no code path that sends text to TTS without constructing SafeResponse. Expected result: the command/check completes successfully with no blocking errors.",
       "Test in test_safety_layer.py: an over-promising draft never reaches output verbatim. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 16,
     "category": "functional",
     "app": "apis",
-    "description": "Safety guarantee 6: no silent call drop \u2014 every failure degrades to human handoff",
+    "description": "Safety guarantee 6: no silent call drop — every failure degrades to human handoff",
     "spec_reference": "safety_requirements/guarantee 6",
     "steps": [
       "Verify every call turn is wrapped in a try/except boundary routing exceptions, timeouts, and clarification_attempts threshold breaches to the handoff path. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify the handoff path speaks a fallback message and logs the handoff (transfer or scheduled callback). Expected result: the command/check completes successfully with no blocking errors.",
       "Test in test_safety_layer.py: force-raise mid-turn asserts a spoken response plus a logged handoff. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 17,
@@ -226,7 +226,7 @@
       "Run the suite and confirm all safety tests pass. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify a CI script or make target runs the safety suite and exits non-zero on failure. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 18,
@@ -359,7 +359,7 @@
     "id": 28,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 1 \u2014 Ingestion and preprocessing: PDF/TIFF standardization and page cleanup",
+    "description": "Layer 1 — Ingestion and preprocessing: PDF/TIFF standardization and page cleanup",
     "spec_reference": "document_pipeline/layer 1",
     "steps": [
       "Verify uploads of PDF and TIFF are standardized to per-page images/text with deskew/denoise/contrast steps applied. Expected result: the command/check completes successfully with no blocking errors.",
@@ -372,7 +372,7 @@
     "id": 29,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 2 \u2014 Page classification into document types",
+    "description": "Layer 2 — Page classification into document types",
     "spec_reference": "document_pipeline/layer 2",
     "steps": [
       "Verify each page is classified as one of: physician order, face-to-face note, discharge summary, medication list, insurance card, lab results, consent form, fax cover sheet. Expected result: the command/check completes successfully with no blocking errors.",
@@ -385,7 +385,7 @@
     "id": 30,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 3 Path B \u2014 rule-based extraction for digital-text PDFs (Docling + regex)",
+    "description": "Layer 3 Path B — rule-based extraction for digital-text PDFs (Docling + regex)",
     "spec_reference": "document_pipeline/layer 3",
     "steps": [
       "Verify Docling parses text layers and regex/keyword rules extract patient name (after 'Patient:'/'Name:'), ICD codes (letter+digits), member IDs by payer format, NPI (10 digits). Expected result: the command/check completes successfully with no blocking errors.",
@@ -397,7 +397,7 @@
     "id": 31,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 3 Path C \u2014 Gemini vision extraction for image pages",
+    "description": "Layer 3 Path C — Gemini vision extraction for image pages",
     "spec_reference": "document_pipeline/layer 3",
     "steps": [
       "Verify image pages route to the Gemini Flash vision extractor through the single tokenizing LLM wrapper. Expected result: the command/check completes successfully with no blocking errors.",
@@ -410,7 +410,7 @@
     "id": 32,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 4 \u2014 Both paths converge into standardized raw JSON per page",
+    "description": "Layer 4 — Both paths converge into standardized raw JSON per page",
     "spec_reference": "document_pipeline/layer 4",
     "steps": [
       "Verify rules-path and vision-path outputs normalize to the same schema including extraction_path (rules/vision) per field. Expected result: the command/check completes successfully with no blocking errors.",
@@ -422,7 +422,7 @@
     "id": 33,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 5 \u2014 Validation Agent: ICD-10, NPI Luhn+NPPES, member ID format, dates, zip, dosage ranges",
+    "description": "Layer 5 — Validation Agent: ICD-10, NPI Luhn+NPPES, member ID format, dates, zip, dosage ranges",
     "spec_reference": "document_pipeline/layer 5",
     "steps": [
       "Verify ICD-10 codes are validated against the reference table. Expected result: the command/check completes successfully with no blocking errors.",
@@ -442,7 +442,7 @@
     "id": 34,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 5 \u2014 Correction Agent: reasons about validation failures with confidence tiers",
+    "description": "Layer 5 — Correction Agent: reasons about validation failures with confidence tiers",
     "spec_reference": "document_pipeline/layer 5",
     "steps": [
       "Verify 'M17.1I' is auto-corrected to 'M17.11' with high confidence. Expected result: the command/check completes successfully with no blocking errors.",
@@ -456,7 +456,7 @@
     "id": 35,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 5 \u2014 Cross-Reference Agent: consistency across pages",
+    "description": "Layer 5 — Cross-Reference Agent: consistency across pages",
     "spec_reference": "document_pipeline/layer 5",
     "steps": [
       "Verify mismatched patient name/DOB across documents is flagged. Expected result: the command/check completes successfully with no blocking errors.",
@@ -470,7 +470,7 @@
     "id": 36,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 6 \u2014 Completeness check against the requirements checklist with gap generation",
+    "description": "Layer 6 — Completeness check against the requirements checklist with gap generation",
     "spec_reference": "document_pipeline/layer 6",
     "steps": [
       "Verify the checklist covers demographics, signed physician orders, face-to-face documentation, insurance info, diagnosis+ICD, homebound status, medication list. Expected result: the command/check completes successfully with no blocking errors.",
@@ -483,7 +483,7 @@
     "id": 37,
     "category": "agent",
     "app": "apis",
-    "description": "Layer 7 \u2014 Confidence scoring and routing (HIGH/MEDIUM/LOW)",
+    "description": "Layer 7 — Confidence scoring and routing (HIGH/MEDIUM/LOW)",
     "spec_reference": "document_pipeline/layer 7",
     "steps": [
       "Verify HIGH (rules+validated+cross-confirmed) auto-populates the intake record. Expected result: the command/check completes successfully with no blocking errors.",
@@ -558,7 +558,7 @@
       "Verify early-turn classification assigns provider, family, or patient mode from caller statements. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify the mode selects the corresponding static system prompt (Layer 1 control) and is persisted as call.mode in Redis. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify a caller who self-identifies ('I'm the discharge planner', 'I'm his daughter', 'I need care for myself') maps to the correct mode. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify inbound is never routed to Outbound mode \u2014 Outbound is reserved for agency-initiated calls carrying a mission parameter. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify inbound is never routed to Outbound mode — Outbound is reserved for agency-initiated calls carrying a mission parameter. Expected result: the command/check completes successfully with no blocking errors.",
       "Tests assert each mode is selected from representative utterances for provider, family, and patient. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -659,7 +659,7 @@
     "spec_reference": "agent_architecture/safety_gated_call_flow",
     "steps": [
       "Verify each caller turn updates call:{call_sid} in Redis with collected fields and remaining questions. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify only structured, tokenized fields (zip, payer, service type) are sent to eligibility \u2014 never names. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify only structured, tokenized fields (zip, payer, service type) are sent to eligibility — never names. Expected result: the command/check completes successfully with no blocking errors.",
       "Test asserts incremental field accumulation across turns. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -722,7 +722,7 @@
     "spec_reference": "agent_architecture/core_principle",
     "steps": [
       "Verify a LangGraph graph models referral received -> document processing -> eligibility -> decision -> follow-up. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify the orchestrator never calls Twilio, never parses documents, and never queries databases directly \u2014 only routes to sub-agents. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the orchestrator never calls Twilio, never parses documents, and never queries databases directly — only routes to sub-agents. Expected result: the command/check completes successfully with no blocking errors.",
       "Unit test drives a referral through the full state sequence. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
@@ -1417,7 +1417,7 @@
     "spec_reference": "workflows/situation_handling",
     "steps": [
       "Force an exception during a simulated call turn. Expected result: the command/check completes successfully with no blocking errors.",
-      "Verify the caller hears the fallback ('Let me connect you with a coordinator') \u2014 never silence. Expected result: the command/check completes successfully with no blocking errors.",
+      "Verify the caller hears the fallback ('Let me connect you with a coordinator') — never silence. Expected result: the command/check completes successfully with no blocking errors.",
       "Verify a handoff (transfer or scheduled callback) is logged and visible in the dashboard. Expected result: the command/check completes successfully with no blocking errors."
     ],
     "passes": false
