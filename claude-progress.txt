@@ -1,3 +1,38 @@
+=== Session 2 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Unblocked session-1 items: created apis/.venv, installed all Python deps
+   (pip works outside the sandbox), committed .env.example.
+2. Feature #2 (FastAPI skeleton) VERIFIED and marked passing:
+   - Added missing pins to apis/requirements.txt: langgraph, redis,
+     psycopg[binary], neo4j.
+   - pytest: 2 passed, coverage 81%.
+   - Started uvicorn, GET /health -> 200 with per-dependency status
+     (postgres/neo4j/redis report "not_configured" without a .env — expected).
+3. Feature #3 (React dashboard scaffold) IMPLEMENTED, VERIFIED, marked passing:
+   - apps/dashboard scaffolded with Vite + React 19 + TypeScript.
+   - package.json: scripts dev/build/lint/type-check, engines.node >= 20.
+   - npm run lint, type-check, build all pass with zero errors.
+   - npm run dev -> HTTP 200 on http://localhost:5173/.
+
+Status: 2/113 features passing.
+
+Environment notes for next session:
+- Docker daemon NOT running — features #1/#4/#5 cannot be end-to-end verified
+  until Docker Desktop is started; file-level steps can still be prepared.
+- Sandbox blocks pip/npm network and server listen; use non-sandboxed runs for
+  installs and short-lived server checks.
+- pkill patterns must be specific; prefer `cmd & PID=$!; ...; kill $PID`.
+
+Recommended next work (dependency order):
+- infra/docker-compose.yml + Postgres migrations + Neo4j seeds (features
+  #1/#4/#5 file-level steps) so they verify instantly once Docker is up.
+- Safety guarantees #11-#17 (test_safety_layer.py) — must-have.md Part 1
+  gates everything else.
+- Then eligibility agent and intake API endpoints.
+
 === Session 1 — Initializer (2026-07-11) ===
 
 Branch: autonomous-coder/initialize (non-protected; git was already initialized)
