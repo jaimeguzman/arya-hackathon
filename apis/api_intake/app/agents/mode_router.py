@@ -41,6 +41,20 @@ MODE_PROMPT_FILES = {
     CallerMode.OUTBOUND: "outbound-mode.md",
 }
 
+# Ambiguity handling (feature: ambiguous / low-confidence classification).
+# The most cautious profile is Family: plain-language, never-promise — safe
+# for any caller type until the true one is resolved.
+CAUTIOUS_DEFAULT_MODE = CallerMode.FAMILY
+# confidence = winning-mode matches / total matches across all modes. Below
+# this share the evidence is mixed enough that guessing is unsafe, so the
+# cautious default applies instead of the classified mode.
+MODE_CONFIDENCE_THRESHOLD = 0.7
+# One neutral clarifying question — names no mode as a guess.
+MODE_CLARIFYING_QUESTION = (
+    "To make sure I help you the right way — are you calling from a "
+    "provider's office, or about care for yourself or a family member?"
+)
+
 # Phrase evidence per inbound mode. Order within a mode does not matter; the
 # mode with the most distinct matches wins. Ties or zero matches -> no mode.
 _MODE_PHRASES: dict[CallerMode, tuple[str, ...]] = {

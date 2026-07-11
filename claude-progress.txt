@@ -1,3 +1,43 @@
+=== Session 9 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (132 passed).
+2. Feature #43 (ambiguous / low-confidence caller-type handling)
+   IMPLEMENTED, VERIFIED, marked passing:
+   - mode_router.py: CAUTIOUS_DEFAULT_MODE (Family), MODE_CONFIDENCE_THRESHOLD
+     (0.7 share-of-evidence), MODE_CLARIFYING_QUESTION (one neutral question).
+   - consent.py: CallRecord.mode_confidence — classification confidence
+     recorded on the call record every detection turn.
+   - routes/twilio.py: _assign_mode() reworked — confident match assigns
+     mode; ambiguous zero-progress opening asks ONE clarifying question
+     (increments clarification_attempts, bypasses intake turn); still
+     unresolved or low-confidence -> cautious Family default, never a guess;
+     data-bearing turns are never interrupted with the question. New
+     _post_consent_turn() wraps extraction + detection + reply inside
+     run_call_turn's safety boundary. One attempts-increment per turn
+     (no double counting), so repeated failure reaches handoff (guarantee 6).
+   - tests/test_mode_router.py: +6 tests (unit ambiguity handling and full
+     WS flow clarify -> default -> handoff). Full suite: 138 passed x3;
+     safety gate 30 passed.
+
+Status: 20/115 features passing.
+
+Notes:
+- Foreign uncommitted work still present (untracked, NOT touched/committed):
+  apis/api_intake/app/{orchestrator,followup,prompts,services}/,
+  data/reference/{guardrail_rules,medications_reference}.json, modified
+  infra/docker-compose.yml, and unstaged deletions under local/ (do not
+  touch local/ per CLAUDE.local.md).
+- apis/README.md doc sync for mode routing still pending (doc hook blocks
+  subfolder .md edits in past sessions).
+
+Recommended next work:
+- Feature #44 (mid-call mode switch): re-run classification on later turns,
+  preserve collected fields, log old_mode/new_mode transitions.
+- Then #45/#46/#47 mode-specific turn behavior calling apply_decision().
+
 === Session 8 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize

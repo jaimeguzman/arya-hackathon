@@ -25,6 +25,9 @@ class CallRecord(BaseModel):
     call_sid: str
     consent_given: bool = False
     handoff_requested: bool = False
+    # Caller-type classification confidence from the most recent detection
+    # turn (None until detection has run). Recorded for dashboard/QA review.
+    mode_confidence: float | None = None
 
 
 class ConsentRequiredError(RuntimeError):

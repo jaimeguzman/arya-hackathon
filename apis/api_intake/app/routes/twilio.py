@@ -23,6 +23,10 @@ from fastapi.responses import Response
 
 from app.agents.eligibility_agent import EligibilityRequest, decide, find_plan_in_text
 from app.agents.mode_router import (
+    CAUTIOUS_DEFAULT_MODE,
+    MODE_CLARIFYING_QUESTION,
+    MODE_CONFIDENCE_THRESHOLD,
+    INBOUND_MODES,
     CallerMode,
     CallModeStore,
     classify_utterance,
@@ -71,6 +75,7 @@ class CallSession:
         self.clarification_attempts = 0
         self.mode: CallerMode | None = None
         self.mode_prompt: str | None = None
+        self.mode_clarification_asked = False
 
 
 def get_mode_store() -> CallModeStore | None:
@@ -86,21 +91,58 @@ def get_mode_store() -> CallModeStore | None:
     return CallModeStore(redis.Redis.from_url(settings.redis_url))
 
 
-def _assign_mode(session: CallSession, utterance: str) -> None:
+def _set_mode(session: CallSession, mode: CallerMode) -> None:
+    session.mode = mode
+    session.mode_prompt = load_mode_prompt(mode)
+    store = get_mode_store()
+    if store is not None:
+        store.set_mode(session.record.call_sid, mode)
+
+
+def _assign_mode(
+    session: CallSession, utterance: str, made_progress: bool = False
+) -> str | None:
     """Early-turn caller-type detection (WORKFLOW Path A Step 3).
 
     Runs only after consent (callers reach here through the consent gate).
     Only inbound modes are ever assigned — never OUTBOUND, which is reserved
     for agency-initiated calls carrying a mission parameter.
+
+    Ambiguous / low-confidence handling: the classification confidence is
+    recorded on the call record every detection turn. A confident match
+    assigns its mode. A low-confidence match keeps the cautious default
+    (Family) instead of guessing. A fully ambiguous opening asks ONE neutral
+    clarifying question (returned to be spoken); if the caller type is still
+    unresolved on the next turn, the cautious default applies. Each
+    unresolved turn increments clarification_attempts, so repeated failure
+    reaches the human handoff path (guarantee 6) via run_call_turn.
     """
     classification = classify_utterance(utterance)
-    if classification.mode is None or classification.mode == CallerMode.OUTBOUND:
-        return
-    session.mode = classification.mode
-    session.mode_prompt = load_mode_prompt(classification.mode)
-    store = get_mode_store()
-    if store is not None:
-        store.set_mode(session.record.call_sid, classification.mode)
+    session.record = session.record.model_copy(
+        update={"mode_confidence": classification.confidence}
+    )
+    if (
+        classification.mode in INBOUND_MODES
+        and classification.confidence >= MODE_CONFIDENCE_THRESHOLD
+    ):
+        _set_mode(session, classification.mode)
+        return None
+    if made_progress:
+        # A data-bearing turn is never interrupted with a clarifying
+        # question — the unresolved caller type takes the cautious default.
+        _set_mode(session, CAUTIOUS_DEFAULT_MODE)
+        return None
+    if classification.mode is None and not session.mode_clarification_asked:
+        # Ambiguous opening: ask one neutral clarifying question, no guess.
+        # This turn bypasses _provider_turn, so it counts its own
+        # clarification attempt; every other zero-progress turn is counted
+        # by _provider_turn (one increment per turn, never two).
+        session.mode_clarification_asked = True
+        session.clarification_attempts += 1
+        return MODE_CLARIFYING_QUESTION
+    # Still unresolved (or resolved only at low confidence): cautious default.
+    _set_mode(session, CAUTIOUS_DEFAULT_MODE)
+    return None
 
 
 def _extract_fields(session: CallSession, utterance: str) -> bool:
@@ -162,9 +204,23 @@ def _eligibility_wording(session: CallSession) -> str:
     return f"We need a bit more information before we can decide: {'; '.join(decision.reasons)}."
 
 
-def _provider_turn(session: CallSession, utterance: str) -> str:
-    """Deterministic provider-mode turn. Swap point for the LLM gateway."""
+def _post_consent_turn(session: CallSession, utterance: str) -> str:
+    """One full post-consent turn: extraction, caller-type detection, reply.
+
+    Runs entirely inside run_call_turn's safety boundary. Caller-type
+    detection happens on early turns; an ambiguous, zero-progress opening
+    yields the one neutral clarifying question instead of the intake reply.
+    """
     progressed = _extract_fields(session, utterance)
+    if session.mode is None:
+        clarifying_question = _assign_mode(session, utterance, made_progress=progressed)
+        if clarifying_question is not None:
+            return clarifying_question
+    return _provider_turn(session, progressed)
+
+
+def _provider_turn(session: CallSession, progressed: bool) -> str:
+    """Deterministic provider-mode turn. Swap point for the LLM gateway."""
     if session.patient_zip and session.insurance_plan and session.service_type:
         return _eligibility_wording(session)
     if progressed:
@@ -247,11 +303,9 @@ async def conversation_relay(websocket: WebSocket) -> None:
 
             # Consent granted: detect caller type on early turns, then run
             # the turn inside the safety boundary.
-            if session.mode is None:
-                _assign_mode(session, utterance)
             result = run_call_turn(
                 session.record,
-                lambda call: _provider_turn(session, utterance),
+                lambda call: _post_consent_turn(session, utterance),
                 clarification_attempts=session.clarification_attempts,
             )
             await _send_text(websocket, result.spoken_text)

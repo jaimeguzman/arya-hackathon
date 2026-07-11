@@ -576,7 +576,7 @@
       "Verify repeated failure to resolve caller type increments clarification_attempts and can reach the human handoff path (guarantee 6). Expected result: the command/check completes successfully with no blocking errors.",
       "Test asserts an ambiguous utterance yields a clarifying question and the cautious default, not a random mode. Expected result: the command/check completes successfully with no blocking errors."
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": 44,

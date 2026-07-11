@@ -5,7 +5,10 @@ from fastapi.testclient import TestClient
 
 from app.agents import mode_router
 from app.agents.mode_router import (
+    CAUTIOUS_DEFAULT_MODE,
     INBOUND_MODES,
+    MODE_CLARIFYING_QUESTION,
+    MODE_CONFIDENCE_THRESHOLD,
     CallerMode,
     CallModeStore,
     classify_utterance,
@@ -137,3 +140,105 @@ class TestCallFlowRouting:
             self._say(ws, "yes")
             self._say(ws, utterance)
             assert fake_store.get_mode(call_sid) == expected
+
+
+AMBIGUOUS_UTTERANCE = "Hello, I'd like some information please."
+# PROVIDER wins 2 phrases to FAMILY's 1 -> confidence 2/3, below threshold.
+LOW_CONFIDENCE_UTTERANCE = "I'm a nurse, we have a patient — well, my mother."
+
+
+class TestAmbiguousDetection:
+    """Feature: ambiguous / low-confidence caller-type handling (unit level)."""
+
+    @pytest.fixture(autouse=True)
+    def no_store(self, monkeypatch):
+        monkeypatch.setattr(twilio_routes, "get_mode_store", lambda: None)
+
+    def _session(self) -> twilio_routes.CallSession:
+        session = twilio_routes.CallSession("CA-ambiguous")
+        session.record = session.record.model_copy(update={"consent_given": True})
+        return session
+
+    def test_ambiguous_opening_asks_one_neutral_clarifying_question(self):
+        session = self._session()
+        question = twilio_routes._assign_mode(session, AMBIGUOUS_UTTERANCE)
+        assert question == MODE_CLARIFYING_QUESTION
+        assert session.mode is None  # no guessing
+        assert session.clarification_attempts == 1
+        assert session.record.mode_confidence == 0.0
+
+    def test_still_unresolved_after_clarification_gets_cautious_default(self):
+        session = self._session()
+        twilio_routes._assign_mode(session, AMBIGUOUS_UTTERANCE)
+        question = twilio_routes._assign_mode(session, AMBIGUOUS_UTTERANCE)
+        assert question is None  # only ONE clarifying question is ever asked
+        assert session.mode == CAUTIOUS_DEFAULT_MODE == CallerMode.FAMILY
+        # Only the clarifying-question turn incremented here; zero-progress
+        # turns are counted once per turn by the intake turn itself.
+        assert session.clarification_attempts == 1
+
+    def test_low_confidence_match_keeps_cautious_default_not_classified_mode(self):
+        classification = classify_utterance(LOW_CONFIDENCE_UTTERANCE)
+        assert classification.mode == CallerMode.PROVIDER
+        assert 0 < classification.confidence < MODE_CONFIDENCE_THRESHOLD
+        session = self._session()
+        twilio_routes._assign_mode(session, LOW_CONFIDENCE_UTTERANCE)
+        assert session.mode == CAUTIOUS_DEFAULT_MODE
+        assert session.record.mode_confidence == classification.confidence
+
+    def test_confident_match_records_confidence_and_assigns_mode(self):
+        session = self._session()
+        question = twilio_routes._assign_mode(
+            session, "I'm the discharge planner with a referral for a patient."
+        )
+        assert question is None
+        assert session.mode == CallerMode.PROVIDER
+        assert session.clarification_attempts == 0
+        assert session.record.mode_confidence == 1.0
+
+    def test_clarifying_answer_resolves_to_the_stated_mode(self):
+        session = self._session()
+        twilio_routes._assign_mode(session, AMBIGUOUS_UTTERANCE)
+        twilio_routes._assign_mode(session, "I'm his daughter, calling about my father.")
+        assert session.mode == CallerMode.FAMILY
+        assert session.record.mode_confidence == 1.0
+
+
+class TestAmbiguousCallFlow:
+    """Feature: ambiguous handling end-to-end over the WebSocket."""
+
+    @pytest.fixture()
+    def fake_store(self, monkeypatch):
+        store = CallModeStore(FakeRedisClient())
+        monkeypatch.setattr(twilio_routes, "get_mode_store", lambda: store)
+        return store
+
+    def _consented(self, ws, call_sid: str) -> None:
+        ws.send_json({"type": "setup", "callSid": call_sid})
+        ws.receive_json()
+        ws.send_json({"type": "prompt", "voicePrompt": "yes"})
+        ws.receive_json()
+
+    def _say(self, ws, utterance: str) -> dict:
+        ws.send_json({"type": "prompt", "voicePrompt": utterance})
+        return ws.receive_json()
+
+    def test_ambiguous_flow_clarifies_then_defaults_then_hands_off(self, fake_store):
+        call_sid = "CA-amb-flow"
+        with client.websocket_connect("/twilio/conversation-relay") as ws:
+            self._consented(ws, call_sid)
+            # Turn 1: ambiguous -> one neutral clarifying question, no mode.
+            reply = self._say(ws, AMBIGUOUS_UTTERANCE)
+            assert MODE_CLARIFYING_QUESTION in reply["token"]
+            assert fake_store.get_mode(call_sid) is None
+            # Turn 2: still ambiguous -> cautious Family default persisted.
+            reply = self._say(ws, AMBIGUOUS_UTTERANCE)
+            assert MODE_CLARIFYING_QUESTION not in reply["token"]
+            assert fake_store.get_mode(call_sid) == CAUTIOUS_DEFAULT_MODE
+            # Turns 3-4: zero-progress turns keep incrementing
+            # clarification_attempts until the human handoff path fires
+            # (guarantee 6 — never a silent drop).
+            self._say(ws, AMBIGUOUS_UTTERANCE)
+            reply = self._say(ws, AMBIGUOUS_UTTERANCE)
+            assert reply["token"]  # spoken fallback, not silence
+            assert ws.receive_json() == {"type": "end"}
