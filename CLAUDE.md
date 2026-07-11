@@ -8,13 +8,17 @@ All content in this repository — code, comments, documentation, commit message
 
 This is the standing operating protocol for this repo. It governs every request — questions, architecture suggestions, task creation, code, file edits, debugging, proposals — not only explicit feature requests.
 
-### Mandatory first step: read all documentation
+### Mandatory first step: read all documentation, every session, no exceptions
+
+This is the standing instruction for the start of **every single session** — including the first message after a teammate has `git pull`ed someone else's push. Never rely on memory of a previous session or on a cached mental model of the repo. The repo changes between sessions (teammates push code, data, or docs while you weren't looking — this has already happened once: a full Phase 1 data layer landed under a `local/` folder nobody had flagged in chat). Treat every session as if you've never seen this repo before.
 
 Before doing anything — including answering questions, suggesting architecture, creating tasks, writing code, modifying files, debugging, or proposing improvements:
 
-1. Read every `.md` file in the repository. Currently: [`PROJECT.md`](PROJECT.md), [`must-have.md`](must-have.md), [`architecture.md`](architecture.md), `CLAUDE.md`, `AGENTS.md`, `README.md`, [`.claude/rules/language.md`](.claude/rules/language.md), and anything under `docs/`.
-2. Treat these files as the complete context and current state of the project: architecture, existing features, completed work, in-progress work, developer ownership, pending tasks, technical decisions, known issues, future plans.
-3. Never make assumptions based only on code files — the `.md` documentation represents the team's shared understanding.
+1. **Discover, don't assume, the file list.** Run a fresh scan (e.g. `find . -name "*.md" -not -path "*/.git/*"`) rather than reusing a remembered list — new `.md` files and new top-level folders appear between sessions and a hardcoded list will silently miss them. At minimum this currently includes [`PROJECT.md`](PROJECT.md), [`must-have.md`](must-have.md), [`architecture.md`](architecture.md), [`WORKFLOW.md`](WORKFLOW.md), [`data/README.md`](data/README.md), `CLAUDE.md`, `AGENTS.md`, `README.md`, [`.claude/rules/language.md`](.claude/rules/language.md), every per-folder `CLAUDE.md`/`README.md` (`ai-agents/`, `apis/`, `apps/`, `infra/`, `services/`), and anything under `docs/` — but do not treat this list as exhaustive or stop discovering new files just because they match it.
+2. **Also scan for undocumented code/folders.** A `git status` / top-level `find` that turns up a directory (like `local/`) not mentioned in any `.md` file is itself a signal — read what's inside it before answering, and flag the gap rather than ignoring the folder because no doc pointed at it.
+3. **Read [`WORKFLOW.md`](WORKFLOW.md)'s "Progress Report & Parallel Work Plan" section first among the docs** — it's the fastest way to know what's actually done vs. pending vs. blocked, since it's the one section explicitly designed to be a point-in-time status snapshot rather than evergreen narration.
+4. Treat all of this as the complete context and current state of the project: architecture, existing features, completed work, in-progress work, developer ownership, pending tasks, technical decisions, known issues, future plans.
+5. Never make assumptions based only on code files — the `.md` documentation represents the team's shared understanding — but also never trust a `.md` file's claim about what's "done" without spot-checking against the actual repo contents, since docs can lag behind a teammate's push just as easily as they can lag behind your own work.
 
 If the `.md` files and the actual code (or other `.md` files) appear inconsistent:
 - Identify the mismatch and say so explicitly.
@@ -143,8 +147,10 @@ Whenever anything changes, immediately update:
 - `PROJECT.md` if project direction or features change.
 - `must-have.md` if anything safety-related or a core must-have feature changes.
 - Relevant feature documentation, architecture documentation, API documentation, setup documentation.
+- **`WORKFLOW.md`'s "Progress Report & Parallel Work Plan" section** — every time a task from the parallel-tasks plan is started, finished, or blocked, move it between the "done" and "pending" tables and update its status. This section exists specifically so that after a `git push`, the next teammate who opens Claude sees current reality immediately, without asking anyone. Stale rows here are worse than no rows — update them the moment status changes, not at the end of a work session.
+- If a flagged conflict (like the `data/` vs `local/data/` duplication) gets resolved, remove it from the "conflicts to resolve" list and note the resolution in the relevant doc (e.g. `data/README.md`) rather than leaving a resolved conflict sitting in `WORKFLOW.md` looking unresolved.
 
-The next developer should be able to understand the current state only by reading the `.md` files — never by asking a teammate.
+The next developer should be able to understand the current state only by reading the `.md` files — never by asking a teammate. This is the entire point of the workflow: someone pulls your push, opens Claude, and Claude's first action (per the mandatory-first-step rule above) surfaces exactly what changed, what's done, and what's still open — before they ask a single question.
 
 ### Coding principles
 
