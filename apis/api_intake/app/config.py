@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     twilio_phone_number: str = ""
     gemini_api_key: str = ""
     public_base_url: str = ""
+    reference_data_dir: str = ""
 
 
 @lru_cache

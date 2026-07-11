@@ -1,3 +1,43 @@
+=== Session 4 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (38 passed).
+2. Features #19 (service area check) and #20 (insurance check) VERIFIED and
+   marked passing:
+   - New module apis/api_intake/app/eligibility/:
+     * reference_data.py — loads data/reference/agency_configuration.json and
+       payer_coverage_rules.json; data dir comes from REFERENCE_DATA_DIR env
+       var (Settings.reference_data_dir); no fallback — unset/missing raises.
+     * checks.py — check_service_area() (reason 'zip not served' on hard
+       fail), check_insurance() (payer contract check, exact then pg_trgm-
+       style trigram fuzzy plan match, threshold 0.3 = Postgres default);
+       missing input -> NEEDS_MORE_INFO, never DECLINE.
+   - tests/test_eligibility_checks.py: 16 tests covering served/unserved/
+     missing zip, accepted/rejected/fuzzy/missing insurance, trigram math.
+   - Full suite: 54 passed. Safety gate (test_safety_layer.py): 30 passed.
+3. Config: added reference_data_dir to Settings.
+
+Known gaps / blocked:
+- .env.example update for REFERENCE_DATA_DIR blocked: sandbox denies all
+  .env.* reads/writes this session. NEXT SESSION: add
+  REFERENCE_DATA_DIR=data/reference to .env.example.
+- WORKFLOW.md progress-snapshot update blocked by documentation-spam hook
+  (.md edits only allowed in docs/, .prompts/, .github/). Doc sync pending:
+  mark FastAPI skeleton done and Eligibility Agent partial (19/20 done,
+  Neo4j traversal + caregiver availability pending).
+- `make safety` uses bare `python` which resolves to a wrong global
+  interpreter on this machine — run with apis/.venv/bin/python instead.
+- Docker daemon still NOT running — features #1/#4/#5 still blocked.
+
+Status: 12/115 features passing.
+
+Recommended next work:
+- Feature #24 (decision engine bias) — compose the two checks into the
+  decision engine; most steps already testable without DB.
+- Features #21/#22 need Neo4j (Docker); #25 needs Redis.
+
 === Session 3 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
