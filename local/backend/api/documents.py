@@ -2,22 +2,24 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models.database import get_db
+from backend.models.database import get_db, get_redis
 from backend.models.schemas import (
     DocumentExtractionResponse,
     DocumentPageResponse,
     DocumentStatusResponse,
     DocumentUploadResponse,
 )
-from backend.models.tables import DocumentProcessingStatus
+from backend.models.tables import Document, DocumentProcessingStatus
 from backend.services.document_service import DocumentService
 from backend.workers.document_processor import DocumentProcessor
-from backend.models.database import get_redis
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 _service = DocumentService()
@@ -38,6 +40,44 @@ async def upload_document(
         file_name=row.file_name,
         page_count=row.page_count,
         processing_status=row.processing_status,
+    )
+
+
+@router.get("/by-intake/{intake_id}")
+async def documents_by_intake(
+    intake_id: UUID, session: AsyncSession = Depends(get_db)
+) -> list[dict]:
+    stmt = (
+        select(Document)
+        .where(Document.intake_record_id == intake_id)
+        .order_by(Document.created_at.desc())
+    )
+    rows = list((await session.execute(stmt)).scalars().all())
+    return [
+        {
+            "id": str(r.id),
+            "file_name": r.file_name,
+            "processing_status": r.processing_status.value
+            if hasattr(r.processing_status, "value")
+            else r.processing_status,
+            "page_count": r.page_count,
+        }
+        for r in rows
+    ]
+
+
+@router.get("/{document_id}/file")
+async def document_file(
+    document_id: UUID, session: AsyncSession = Depends(get_db)
+) -> FileResponse:
+    row = await _service.get(session, document_id)
+    path = Path(row.file_path)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="File missing on disk")
+    return FileResponse(
+        path,
+        filename=row.file_name,
+        media_type="application/pdf",
     )
 
 

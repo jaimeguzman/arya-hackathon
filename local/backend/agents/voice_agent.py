@@ -107,6 +107,7 @@ class CallSession:
     voicemail: bool = False
     pending_task: asyncio.Task | None = None
     call_record_created: bool = False
+    eligibility_result: dict[str, Any] | None = None
 
 
 class VoiceAgent:
@@ -307,6 +308,7 @@ class VoiceAgent:
                 guardrail_violations.extend(more_v)
                 session.eligibility_checked = True
                 session.last_elig_fingerprint = fp
+                session.eligibility_result = eligibility_result
 
         session.conversation_history.append({"role": "model", "content": response_text})
 
@@ -577,11 +579,16 @@ class VoiceAgent:
             payload = {
                 "call_sid": session.call_sid,
                 "mode": session.conversation_mode,
-                "accumulated_data": session.accumulated_data,
+                "direction": session.direction,
+                "caller_number": session.caller_number,
+                "started_at": session.call_start_time.isoformat(),
                 "turn_count": session.turn_count,
                 "intake_record_id": str(session.intake_record_id)
                 if session.intake_record_id
                 else None,
+                "accumulated_data": session.accumulated_data,
+                "eligibility_result": session.eligibility_result,
+                "last_turns": session.conversation_history[-3:],
             }
             await redis.set(
                 f"call:{session.call_sid}",

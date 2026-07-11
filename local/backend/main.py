@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from backend.api import caregivers, documents, eligibility, followup, intake, voice
+from backend.api import caregivers, calls, documents, eligibility, followup, intake, voice
 from backend.models.database import close_all_dbs, get_neo4j, get_redis, get_sessionmaker, init_all_dbs
 from backend.workers.followup_scheduler import get_scheduler
 
@@ -26,8 +26,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     title="IntakeAI",
-    description="Home health intake API — Phase 5",
-    version="0.5.0",
+    description="Home health intake API — Phase 6",
+    version="0.6.0",
     lifespan=lifespan,
 )
 
@@ -44,6 +44,7 @@ app.include_router(intake.router)
 app.include_router(eligibility.router)
 app.include_router(caregivers.router)
 app.include_router(documents.router)
+app.include_router(calls.router)
 app.include_router(followup.router)
 app.include_router(voice.router)
 
@@ -52,7 +53,7 @@ app.include_router(voice.router)
 async def health() -> dict[str, Any]:
     status = {
         "service": "IntakeAI",
-        "version": "0.5.0",
+        "version": "0.6.0",
         "postgres": "error",
         "neo4j": "error",
         "redis": "error",

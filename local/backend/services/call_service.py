@@ -81,3 +81,34 @@ class CallService:
         row.mode = mode
         await session.flush()
         return row
+
+    async def list_by_intake(
+        self, session: AsyncSession, intake_id: UUID
+    ) -> list[CallRecord]:
+        from sqlalchemy import select
+
+        stmt = (
+            select(CallRecord)
+            .where(CallRecord.intake_record_id == intake_id)
+            .order_by(CallRecord.started_at.asc())
+        )
+        return list((await session.execute(stmt)).scalars().all())
+
+    @staticmethod
+    async def list_active_from_redis() -> list[dict[str, Any]]:
+        import json
+
+        from backend.models.database import get_redis
+
+        redis = get_redis()
+        keys = await redis.keys("call:*")
+        out: list[dict[str, Any]] = []
+        for key in keys:
+            raw = await redis.get(key)
+            if not raw:
+                continue
+            try:
+                out.append(json.loads(raw))
+            except json.JSONDecodeError:
+                continue
+        return out
