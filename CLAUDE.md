@@ -185,3 +185,14 @@ A feature is not complete until: (1) it works, (2) tests/checks are completed, (
 ### Final rule
 
 The repository documentation and code must always stay synchronized. Before thinking, read all `.md` files. Before changing code, check documentation. After changing code, update documentation immediately. The goal: any team member can join the project at any moment, read the `.md` files, and fully understand the current state without asking anyone.
+
+## Workspace Boundaries (parallel agents — do not cross)
+
+Two build tracks run in parallel in this repo. Each has a hard boundary:
+
+- **`local/`** — the autonomous coder agent's live workspace (own PROJECT.md, specs, `feature_list.json` tracking). **No human developer or other agent writes, moves, or deletes anything under `local/` while its branch is active.** Duplications between `local/` and the canonical tree (e.g. the vendored `eligibility_core.py`, `local/data/*.json`) are deliberate and temporary.
+- **`apis/` + `ai-agents/` + `data/` + `infra/` + `apps/`** — the canonical integration tree where the 4-developer protocol above applies. `data/` is the single canonical seed-data source for this tree.
+
+**Integration contract between the trees:** the seam is the `EligibilityClient` protocol (defined in `local/backend/orchestrator/eligibility.py`) and the canonical `POST /eligibility-check` endpoint in `apis/api_intake`. Both implement the same ACCEPT / DECLINE / NEEDS_MORE_INFO semantics from `must-have.md` #3.
+
+**Reconciliation happens at merge time, not mid-flight.** When the autonomous agent's branch merges, execute [`docs/MERGE_DAY_RECONCILIATION.md`](docs/MERGE_DAY_RECONCILIATION.md) once, deliberately. Until then, treat WORKFLOW.md's "two conflicts" as governed by this boundary — not as an invitation to hot-migrate.

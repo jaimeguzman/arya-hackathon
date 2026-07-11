@@ -38,10 +38,10 @@ This section is a point-in-time status snapshot, not an evergreen part of the wo
 | Dashboard (React) | ✅ Done — see "Dashboard UI" / "Dashboard API" above. Live data needs Docker (Postgres) up. |
 | Twilio account/number provisioning | ⚠️ Unknown — `.env.example` has empty Twilio fields, can't verify from the repo; confirm with the team |
 
-### Two conflicts to resolve first (flagged, not silently resolved)
+### Two conflicts — RESOLVED by boundary declaration (see CLAUDE.md "Workspace Boundaries")
 
-1. **Duplicate seed data, only one copy is real.** [`data/`](data/) (reference/synthetic JSON + fax PDFs) and [`local/data/`](local/data/) (7 JSON files, different names/shape) both exist. **Only `local/data/` is actually loaded into the running databases** — `data/` is currently unused by any code. Reconcile into one source before the Eligibility Agent is built against it.
-2. **Folder structure mismatch.** [`architecture.md`](architecture.md#8-proposed-module-layout-not-yet-built--for-file-ownership-planning) §8 proposes code under `apis/`, `ai-agents/`, `infra/`, `apps/`, `services/`. The actual merged code lives under a separate `local/backend/` tree instead. Pick one before more code lands in two places.
+1. **Duplicate seed data — governed, not merged yet.** `local/data/` belongs to the autonomous coder agent's workspace and stays untouched while its branch is active. [`data/`](data/) is the canonical seed source for the integration tree — the Eligibility Agent in `apis/api_intake` builds against `data/` (and now does). The two collapse into one at merge time per [`docs/MERGE_DAY_RECONCILIATION.md`](docs/MERGE_DAY_RECONCILIATION.md).
+2. **Folder structure — same treatment.** `local/backend/` is the agent's sandbox; the canonical code location is `apis/` + `ai-agents/` + `infra/` per architecture §8. New integration-tree code lands only in the canonical locations. The `EligibilityClient` protocol seam keeps both trees compatible until the merge-day collapse.
 
 ### Four parallel tasks
 

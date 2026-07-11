@@ -1,27 +1,36 @@
-"""Data-backed Eligibility Agent.
+"""Canonical Eligibility Agent — the single eligibility implementation in apis/.
 
-Wraps the deterministic safety-layer check (`app.safety.eligibility`) with
-loaders over the repo's reference/synthetic datasets:
+Consolidates the two prior implementations (this module's data-backed agent and
+`app/eligibility/`'s decision engine) into one facade:
 
-- data/reference/agency_configuration.json  -> service area zips, payers
-- data/reference/payer_coverage_rules.json  -> accepted plans + documentation rules
-- data/synthetic/caregiver_roster.json      -> caregiver availability by zip/service
+- decision logic: `app.eligibility.decision.decide_eligibility` — DECLINE only
+  on black-and-white facts; any ambiguity -> NEEDS_MORE_INFO (must-have.md #3 bias)
+- deterministic core spec: `app.safety.eligibility` (no LLM, ever)
+- fuzzy plan matching: trigram matching inside the engine, plus
+  `find_plan_in_text` for free-form speech (Twilio turns)
+- datasets (single canonical source, see data/README.md):
+  - data/reference/agency_configuration.json  -> service area zips, accepted payers
+  - data/reference/payer_coverage_rules.json  -> plan contracts + documentation rules
+  - data/reference/diagnosis_service_certification_mapping.json -> diagnosis -> services -> certs
+  - data/synthetic/caregiver_roster.json      -> caregiver availability (role, zip, capacity, cert expiry)
 
-The decision itself remains plain deterministic code — never an LLM output
-(must-have.md guarantee 3). Plan-name matching uses fuzzy matching so a
-spoken "Humana Gold" resolves to "Humana Gold Plus HMO".
+Status writes go through `app.eligibility.status_writer` — the only sanctioned
+write path for eligibility/acceptance decisions (see `apply_decision`).
 """
 
 import difflib
 import json
 import re
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import BaseModel
 
+from app.config import get_settings
+from app.eligibility.decision import decide_eligibility
+from app.eligibility.reference_data import ReferenceData, load_reference_data
 from app.eligibility.status_writer import set_intake_status
-from app.safety.eligibility import EligibilityResult, check_eligibility
 
 # Decision status -> intake status written by the agent's write path.
 _STATUS_TO_INTAKE_STATUS = {
@@ -32,27 +41,23 @@ _STATUS_TO_INTAKE_STATUS = {
 
 # Repo layout: apis/api_intake/app/agents/ -> repo root is 4 levels up.
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-_AGENCY_CONFIG_PATH = _REPO_ROOT / "data" / "reference" / "agency_configuration.json"
-_PAYER_RULES_PATH = _REPO_ROOT / "data" / "reference" / "payer_coverage_rules.json"
+_DEFAULT_REFERENCE_DIR = _REPO_ROOT / "data" / "reference"
+_PAYER_RULES_PATH = _DEFAULT_REFERENCE_DIR / "payer_coverage_rules.json"
+_DIAGNOSIS_MAP_PATH = _DEFAULT_REFERENCE_DIR / "diagnosis_service_certification_mapping.json"
 _CAREGIVER_ROSTER_PATH = _REPO_ROOT / "data" / "synthetic" / "caregiver_roster.json"
 
 # Minimum similarity for a spoken plan name to resolve to a known plan.
 _PLAN_MATCH_CUTOFF = 0.6
-
-# Service type -> caregiver types that can deliver it (from PROJECT.md mappings).
-_SERVICE_CAREGIVER_TYPES: dict[str, set[str]] = {
-    "skilled_nursing": {"RN", "LPN"},
-    "physical_therapy": {"PT"},
-    "occupational_therapy": {"OT"},
-    "speech_therapy": {"Speech Therapist"},
-    "home_health_aide": {"HHA", "CNA"},
-}
+# Minimum fraction of a plan name's tokens that must appear in an utterance.
+_PLAN_TOKEN_MATCH_THRESHOLD = 0.5
 
 
 class EligibilityRequest(BaseModel):
     patient_zip: str | None = None
+    payer: str | None = None
     insurance_plan: str | None = None
     service_type: str | None = None
+    diagnosis_code: str | None = None
 
 
 class EligibilityDecision(BaseModel):
@@ -61,11 +66,23 @@ class EligibilityDecision(BaseModel):
     matched_plan: str | None = None
     required_documentation: list[str] = []
     matched_caregivers: list[str] = []
+    zip_ok: bool | None = None
+    payer_ok: bool | None = None
 
 
 @lru_cache
-def _load_agency_config() -> dict:
-    return json.loads(_AGENCY_CONFIG_PATH.read_text())["agency"]
+def _reference_data() -> ReferenceData:
+    """PostgreSQL-backed when DATABASE_URL is configured, JSON otherwise."""
+    settings = get_settings()
+    data_dir = settings.reference_data_dir or _DEFAULT_REFERENCE_DIR
+    json_data = load_reference_data(data_dir)
+    if settings.database_url:
+        from app.eligibility.live_sources import load_reference_from_pg
+
+        pg_data = load_reference_from_pg(json_data.plans)
+        if pg_data is not None:
+            return pg_data
+    return json_data
 
 
 @lru_cache
@@ -75,8 +92,38 @@ def _load_payer_plans() -> list[dict]:
 
 
 @lru_cache
-def _load_caregivers() -> list[dict]:
-    return json.loads(_CAREGIVER_ROSTER_PATH.read_text())["caregivers"]
+def _load_caregivers() -> tuple[dict, ...]:
+    return tuple(json.loads(_CAREGIVER_ROSTER_PATH.read_text())["caregivers"])
+
+
+@lru_cache
+def _diagnosis_map() -> dict:
+    return json.loads(_DIAGNOSIS_MAP_PATH.read_text())
+
+
+@lru_cache
+def _service_caregiver_types() -> dict[str, set[str]]:
+    """service_type id -> caregiver base roles, from the reference dataset."""
+    return {
+        service["id"]: set(service["base_role"])
+        for service in _diagnosis_map()["service_types"]
+    }
+
+
+def services_for_diagnosis(icd10: str) -> list[str]:
+    """Diagnosis -> required service types (deterministic reference mapping)."""
+    for mapping in _diagnosis_map()["diagnosis_mappings"]:
+        if mapping["icd10"].upper() == icd10.upper():
+            return list(mapping["required_services"])
+    return []
+
+
+def certifications_for_diagnosis(icd10: str) -> set[str]:
+    """Diagnosis -> caregiver certifications it demands (reference mapping)."""
+    for mapping in _diagnosis_map()["diagnosis_mappings"]:
+        if mapping["icd10"].upper() == icd10.upper():
+            return set(mapping["required_certifications"])
+    return set()
 
 
 def resolve_plan(spoken_plan: str) -> dict | None:
@@ -92,10 +139,6 @@ def resolve_plan(spoken_plan: str) -> dict | None:
             return None
         matches = contained[:1]
     return next(plan for plan in plans if plan["plan"] == matches[0])
-
-
-# Minimum fraction of a plan name's tokens that must appear in an utterance.
-_PLAN_TOKEN_MATCH_THRESHOLD = 0.5
 
 
 def find_plan_in_text(utterance: str) -> dict | None:
@@ -119,17 +162,44 @@ def find_plan_in_text(utterance: str) -> dict | None:
     return None
 
 
-def find_available_caregivers(patient_zip: str, service_type: str) -> list[dict]:
-    """Active caregivers of the right type serving the zip with spare capacity."""
-    wanted_types = _SERVICE_CAREGIVER_TYPES.get(service_type, set())
-    return [
-        caregiver
-        for caregiver in _load_caregivers()
-        if caregiver["status"] == "active"
-        and caregiver["type"] in wanted_types
-        and patient_zip in caregiver["service_zips"]
-        and caregiver["current_patient_load"] < caregiver["max_capacity"]
-    ]
+def _certification_valid(caregiver: dict, certification: str, today: date) -> bool:
+    expiry = (caregiver.get("cert_expiry") or {}).get(certification)
+    return expiry is None or date.fromisoformat(expiry) >= today
+
+
+def find_available_caregivers(
+    patient_zip: str,
+    service_type: str,
+    required_certifications: set[str] | None = None,
+) -> list[dict]:
+    """Active caregivers of the right role serving the zip with spare capacity.
+
+    When the diagnosis demands specific certifications, the caregiver must hold
+    at least one of them, unexpired.
+    """
+    wanted_types = _service_caregiver_types().get(service_type, set())
+    today = date.today()
+    matched = []
+    for caregiver in _load_caregivers():
+        if caregiver["status"] != "active":
+            continue
+        if caregiver["type"] not in wanted_types:
+            continue
+        if patient_zip not in caregiver["service_zips"]:
+            continue
+        if caregiver["current_patient_load"] >= caregiver["max_capacity"]:
+            continue
+        if required_certifications:
+            held = set(caregiver.get("certifications", []))
+            valid = {
+                cert
+                for cert in held & required_certifications
+                if _certification_valid(caregiver, cert, today)
+            }
+            if not valid:
+                continue
+        matched.append(caregiver)
+    return matched
 
 
 def required_documentation(plan: dict) -> list[str]:
@@ -144,45 +214,85 @@ def required_documentation(plan: dict) -> list[str]:
 
 
 def decide(request: EligibilityRequest) -> EligibilityDecision:
-    """Run the deterministic eligibility check against the agency datasets."""
-    agency = _load_agency_config()
-    service_area_zips = set(agency["service_area_zips"])
+    """Run the consolidated deterministic eligibility decision."""
+    data = _reference_data()
 
-    matched_plan = resolve_plan(request.insurance_plan) if request.insurance_plan else None
-    accepted_plans = {plan["plan"] for plan in _load_payer_plans()}
+    # Resolve payer/plan: explicit fields first, then fuzzy speech matching.
+    matched_plan = None
+    if request.insurance_plan:
+        matched_plan = resolve_plan(request.insurance_plan) or find_plan_in_text(
+            request.insurance_plan
+        )
+    payer = request.payer or (matched_plan["payer"] if matched_plan else None)
+    plan_name = matched_plan["plan"] if matched_plan else request.insurance_plan
 
-    plan_covers_service = True
-    if matched_plan and request.service_type:
-        plan_covers_service = request.service_type in matched_plan["covers"]
+    # Diagnosis path: Neo4j traversal first (diagnosis -> service -> cert ->
+    # caregiver -> area), JSON reference mapping as the offline fallback.
+    service_type = request.service_type
+    matched_caregiver_ids: list[str] | None = None
+    if request.diagnosis_code and request.patient_zip:
+        from app.agents.knowledge_graph import traverse_caregivers_for_diagnosis
 
+        graph = traverse_caregivers_for_diagnosis(
+            request.diagnosis_code, request.patient_zip
+        )
+        if graph is not None:
+            matched_caregiver_ids = graph["caregiver_ids"]
+            if not service_type and graph["service_ids"]:
+                service_type = graph["service_ids"][0]
+    if not service_type and request.diagnosis_code:
+        services = services_for_diagnosis(request.diagnosis_code)
+        service_type = services[0] if services else None
+
+    required_certs = (
+        certifications_for_diagnosis(request.diagnosis_code)
+        if request.diagnosis_code
+        else None
+    )
     caregivers: list[dict] = []
     caregivers_available: bool | None = None
-    if request.patient_zip and request.service_type:
-        caregivers = find_available_caregivers(request.patient_zip, request.service_type)
+    if matched_caregiver_ids is not None:
+        caregivers_available = bool(matched_caregiver_ids)
+    elif request.patient_zip and service_type:
+        caregivers = find_available_caregivers(
+            request.patient_zip, service_type, required_certs
+        )
         caregivers_available = bool(caregivers)
 
-    result: EligibilityResult = check_eligibility(
+    engine = decide_eligibility(
         patient_zip=request.patient_zip,
-        insurance_plan=matched_plan["plan"] if matched_plan else request.insurance_plan,
-        service_area_zips=service_area_zips,
-        accepted_plans=accepted_plans,
+        payer=payer,
+        plan=plan_name,
+        service_type=service_type,
         caregivers_available=caregivers_available,
+        data=data,
     )
 
-    reasons = list(result.reasons)
-    status = result.status.value
-    if matched_plan and not plan_covers_service:
-        status = "DECLINE"
-        reasons.append(
-            f"plan '{matched_plan['plan']}' does not cover service '{request.service_type}'"
-        )
+    docs = list(engine.documentation_needs)
+    if matched_plan:
+        for doc in required_documentation(matched_plan):
+            if doc not in docs:
+                docs.append(doc)
+
+    zip_ok = (
+        None
+        if not request.patient_zip
+        else request.patient_zip.strip() in data.service_area_zips
+    )
+    payer_ok = None if not payer else payer in data.accepted_payers
 
     return EligibilityDecision(
-        status=status,
-        reasons=reasons,
+        status=engine.status.value,
+        reasons=list(engine.reasons),
         matched_plan=matched_plan["plan"] if matched_plan else None,
-        required_documentation=required_documentation(matched_plan) if matched_plan else [],
-        matched_caregivers=[caregiver["id"] for caregiver in caregivers],
+        required_documentation=docs,
+        matched_caregivers=(
+            matched_caregiver_ids
+            if matched_caregiver_ids is not None
+            else [caregiver["id"] for caregiver in caregivers]
+        ),
+        zip_ok=zip_ok,
+        payer_ok=payer_ok,
     )
 
 

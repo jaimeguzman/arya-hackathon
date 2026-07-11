@@ -1,5 +1,15 @@
 # Data — Sources, Licensing, and Usage
 
+## Canonical source declaration
+
+**This folder (`data/`) is the single canonical seed-data source for the
+integration tree** (`apis/`, `ai-agents/`, `infra/`, `apps/`). The parallel
+`local/data/` folder belongs to the autonomous coder agent's workspace and is
+reconciled at merge time only — see CLAUDE.md "Workspace Boundaries" and
+[`docs/MERGE_DAY_RECONCILIATION.md`](../docs/MERGE_DAY_RECONCILIATION.md).
+Any new integration-tree loader, seed script, or test builds against the files
+here, never against `local/data/`.
+
 ## ✅ Status: DONE — safe to build against right now, in parallel
 
 All seed/reference data for both entry channels (voice call + fax) is finished, validated, and committed. **Nobody needs to wait on anyone else to start building against this data** — grab your files below and go. This is pre-work per [`PROJECT.md`](../PROJECT.md#hackathon-build-plan) (data prep and scaffolding, no application logic), matching the 4-developer phase split from that build plan.

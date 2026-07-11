@@ -776,15 +776,15 @@ All data prep and architecture decisions — zero application code:
 - Person 3: PostgreSQL schema migration + Neo4j seed data loading
 - Person 4: Twilio account configuration, ConversationRelay setup, Redis setup
 
-### Phase 2: Knowledge & Eligibility Engine (Person 3, Hours 2-3)
+### Phase 2: Knowledge & Eligibility Engine (Person 3, Hours 2-3) — ✅ DONE
 
 > Data ready now: everything in [`data/reference/`](data/reference/) and [`data/synthetic/`](data/synthetic/) — see the quick-start table in [`data/README.md`](data/README.md#-status-done--safe-to-build-against-right-now-in-parallel).
 
-- Eligibility Agent implementation
-- Neo4j traversal queries (diagnosis → service → certification → caregiver matching)
-- PostgreSQL queries (service area, insurance contract, caregiver availability)
-- Accept / decline / needs-more-info decision logic
-- API endpoint: `POST /eligibility-check` → returns decision with reasons
+- ~~Eligibility Agent implementation~~ — **done**: `apis/api_intake/app/agents/eligibility_agent.py` (facade) + `app/eligibility/` (decision engine, NEEDS_MORE_INFO bias)
+- ~~Neo4j traversal queries (diagnosis → service → certification → caregiver matching)~~ — **done**: `infra/neo4j/load_seed.py` (30 diagnoses, 25 caregivers, 8 plans loaded) + `app/agents/knowledge_graph.py` (traversal with JSON fallback)
+- ~~PostgreSQL queries (service area, insurance contract, caregiver availability)~~ — **done**: `infra/postgres/seed_demo_data.py` (seeds intakeai_demo from canonical `data/`) + `app/eligibility/live_sources.py` (PG-backed with JSON fallback)
+- ~~Accept / decline / needs-more-info decision logic~~ — **done**, biased to NEEDS_MORE_INFO on ambiguity per must-have.md #3
+- ~~API endpoint: `POST /eligibility-check` → returns decision with reasons~~ — **done**, verified by the 4-scenario acceptance test (`tests/test_sample_referral_scenarios.py`, all decisions < 3s)
 
 ### Phase 3: Document Pipeline (Person 2, Hours 2-3)
 

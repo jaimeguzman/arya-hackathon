@@ -321,23 +321,29 @@ Everything runs locally via Docker Compose except Twilio and the Gemini API, whi
 
 ---
 
-## 8. Proposed module layout (not yet built — for file-ownership planning)
+## 8. Module layout (actual — kept in sync with reality)
 
-No application code exists yet. This is a **proposed** structure so the 4 developers can claim non-overlapping files per [`CLAUDE.md`](CLAUDE.md)'s ownership rules from hour one. Update this section to match reality the moment real files exist — do not let it drift into fiction.
+Two parallel trees exist, governed by CLAUDE.md "Workspace Boundaries": the **canonical integration tree** below, and `local/` (the autonomous coder agent's workspace, reconciled at merge time per [`MERGE_DAY_RECONCILIATION.md`](MERGE_DAY_RECONCILIATION.md)).
 
 ```
-backend/
-  orchestrator/        ← Person 4 (LangGraph state machine, routing)
-  voice_agent/          ← Person 1 (Twilio ConversationRelay handler, consent gather, tokenize/rehydrate, banned-phrase filter)
-  document_pipeline/    ← Person 2 (7 layers, validation/correction/cross-reference agents)
-  eligibility/          ← Person 3 (Neo4j + PostgreSQL traversal, check_eligibility())
-  follow_up/            ← Person 4 (SMS/email, retry scheduling)
-  db/                   ← Person 3 (migrations, seed scripts, Cypher seed data)
-frontend/
-  dashboard/             ← Person 3 (React dashboard)
+apis/api_intake/            ← canonical backend (one folder per API)
+  app/
+    routes/                  ← Person 1 (health, /eligibility-check, Twilio webhook + ConversationRelay WS)
+    safety/                  ← shared, non-negotiable (must-have.md guarantees 1-6 as code)
+    agents/                  ← Person 3 (eligibility_agent facade, knowledge_graph traversal, mode_router)
+    eligibility/             ← Person 3 (checks, decision engine, reference_data, live_sources PG, status_writer)
+  tests/                     ← full suite incl. make safety gate + 4-scenario acceptance test
+ai-agents/
+  voice-agent/               ← Person 1 (provider/family/outbound mode system prompts)
+infra/
+  neo4j/load_seed.py         ← Person 3 (knowledge-graph seed loader from data/)
+  postgres/seed_demo_data.py ← Person 3 (intakeai_demo seeder from data/)
+apps/dashboard/              ← Person 3 (React dashboard, Vite + TS)
+data/                        ← canonical seed source (see data/README.md)
+local/                       ← autonomous agent workspace (orchestrator, follow-up, guardrails; DO NOT TOUCH — merges per MERGE_DAY_RECONCILIATION.md)
 ```
 
-This maps directly to the [Hackathon Build Plan](PROJECT.md#hackathon-build-plan) phase ownership already in `PROJECT.md` — it just gives each phase a folder so ownership is enforceable in code review, not just in the plan.
+Follow-up + orchestrator live in `local/backend/` until merge day; their canonical seam is the `EligibilityClient` protocol ↔ `POST /eligibility-check` contract.
 
 ---
 

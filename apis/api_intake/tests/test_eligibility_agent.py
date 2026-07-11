@@ -60,7 +60,7 @@ class TestDecide:
             )
         )
         assert decision.status == "DECLINE"
-        assert any("outside the service area" in reason for reason in decision.reasons)
+        assert any("outside the agency service area" in reason for reason in decision.reasons)
 
     def test_needs_more_info_when_zip_missing(self):
         decision = decide(

@@ -17,6 +17,7 @@ replacement of `_provider_turn` with a function that calls
 
 import logging
 import re
+from datetime import datetime
 from xml.sax.saxutils import quoteattr
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -33,6 +34,13 @@ from app.agents.mode_router import (
     ModeTransition,
     classify_utterance,
     load_mode_prompt,
+)
+from app.agents.family_intake import (
+    CALLBACK_NUMBER_QUESTION,
+    FAMILY_CLOSING_WORDING,
+    FamilyWrapup,
+    create_family_wrapup,
+    family_eligibility_wording,
 )
 from app.agents.provider_intake import (
     PROVIDER_FIELD_QUESTIONS,
@@ -57,6 +65,7 @@ SERVICE_UNAVAILABLE_MESSAGE = (
 COORDINATOR_REVIEW_NOTE = "A human coordinator will review this decision."
 
 _ZIP_PATTERN = re.compile(r"\b(\d{5})\b")
+_PHONE_PATTERN = re.compile(r"\b(\d{3})[-.\s]?(\d{3})[-.\s]?(\d{4})\b")
 _YES_PATTERN = re.compile(r"\b(yes|yeah|yep|sure|of course|go ahead|okay|ok)\b", re.IGNORECASE)
 _NO_PATTERN = re.compile(r"\b(no|nope|do not|don't)\b", re.IGNORECASE)
 
@@ -94,6 +103,19 @@ class CallSession:
         self.mode_clarification_asked = False
         self.turn_count = 0
         self.mode_transitions: list[ModeTransition] = []
+        # Family-mode wrap-up state (feature 46).
+        self.callback_number: str | None = None
+        self.wrapup: FamilyWrapup | None = None
+
+
+# SMS confirmations queued for sending via Twilio (in-memory for the demo,
+# like CallSession). The sender worker drains this outbox.
+SMS_OUTBOX: list = []
+
+
+def _now() -> datetime:
+    """Current wall-clock time; tests monkeypatch this for simulated calls."""
+    return datetime.now()
 
 
 def get_mode_store() -> CallModeStore | None:
