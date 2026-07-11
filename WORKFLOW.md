@@ -18,20 +18,21 @@ This section is a point-in-time status snapshot, not an evergreen part of the wo
 
 | Component | Status | Evidence |
 |---|---|---|
-| **Data layer** (PostgreSQL schema, Neo4j constraints, Redis, seed data, loader script, DB connection utils) | ✅ Done | `local/` — docker-compose, `postgres_init.sql` (11 tables), `neo4j_seed.cypher`, `sample_data.py` loader, `database.py` (SQLAlchemy async + Neo4j + Redis clients), `config.py`. Verified per git log ("phase-1: verify all databases connected and seeded") |
+| **Data layer** (PostgreSQL schema, Neo4j constraints, Redis, seed data, loader script, DB connection utils) | ✅ Done | `local/` — docker-compose, `postgres_init.sql` (12 tables), `neo4j_seed.cypher`, `sample_data.py` loader, `database.py` (SQLAlchemy async + Neo4j + Redis clients), `config.py`. Verified per git log ("phase-1: verify all databases connected and seeded") |
+| **Orchestrator (LangGraph)** (Task 4) | ✅ Done (offline, against stubs) | `local/backend/orchestrator/` — `graph.py` (`intake_received → check_eligibility → decide → followup_{accept,decline,needs_info} → END`), `state.py`, `eligibility.py` (contract + stub), `demo.py`. 9 tests green. Runs with no DB/Twilio. |
+| **Follow-up Agent** (Task 4) | ✅ Done (offline, against stubs) | `local/backend/followup/` — `agent.py` (decision→action + bounded retry/escalation, must-have.md #6), `notifications.py` (Twilio contract + stub). 9 tests green. |
 
 ### What's pending
 
 | Component | Status |
 |---|---|
 | FastAPI backend skeleton (health check, WebSocket stub) | ❌ Not started |
-| Eligibility Agent (`check_eligibility()`, Neo4j+Postgres traversal, ACCEPT/DECLINE/NEEDS_MORE_INFO) | ❌ Not started — graph/schema ready, no service code |
+| Eligibility Agent (`check_eligibility()`, Neo4j+Postgres traversal, ACCEPT/DECLINE/NEEDS_MORE_INFO) | ⏳ Contract defined by Task 4 (`local/backend/orchestrator/eligibility.py` — `EligibilityClient`); real Neo4j+Postgres traversal not built. Drop-in via `build_graph(eligibility_client=...)`. |
 | Document Pipeline (7 layers) | ❌ Not started — test fixtures exist (`data/synthetic/referral_faxes/`, 3 real fax PDFs), no extraction/validation/correction code |
 | Voice Agent (Twilio ConversationRelay, consent gather, tokenize/rehydrate, banned-phrase filter, provider/family/outbound modes) | ❌ Not started |
-| Orchestrator (LangGraph state machine) | ❌ Not started |
-| Follow-up Agent (SMS, retries, escalation) | ❌ Not started |
-| Guardrail enforcement code (the 6 `must-have.md` safety guarantees as actual code) | ❌ Not started — documented only, no `guardrail_service.py` or runtime enforcement |
-| Dashboard (React) | ❌ Not started |
+| Twilio wiring for Follow-up Agent | ⏳ Contract defined by Task 4 (`local/backend/followup/notifications.py` — `NotificationClient`); real Twilio client not built. Drop-in via `FollowUpAgent(notifier=...)`. |
+| Guardrail enforcement code (the 6 `must-have.md` safety guarantees as actual code) | ⏳ Partial — #3 (deterministic decision, no LLM) and #6 (bounded retries/escalation) enforced in the orchestrator/follow-up code; the call-path guarantees (#1,#2,#4,#5) still live only in `must-have.md` |
+| Dashboard (React) | ❌ Not started — Task 4 fast-follow |
 | Twilio account/number provisioning | ⚠️ Unknown — `.env.example` has empty Twilio fields, can't verify from the repo; confirm with the team |
 
 ### Two conflicts to resolve first (flagged, not silently resolved)
