@@ -1,3 +1,43 @@
+=== Session 8 — Coding agent (2026-07-11) ===
+
+Branch: autonomous-coder/initialize
+
+Done this session:
+1. Regression check: full api_intake suite green before new work (112 passed).
+2. Feature #42 (caller-type detection routing to Provider/Family/Patient
+   modes) IMPLEMENTED, VERIFIED, marked passing:
+   - New app/agents/mode_router.py: classify_utterance() (phrase-scored,
+     ties/zero -> None, never OUTBOUND), detect_caller_mode() gated by
+     @requires_consent, load_mode_prompt() (Layer 1 static prompts from
+     ai-agents/voice-agent/), CallModeStore (call.mode in a Redis hash;
+     client-injected so tests run without a server).
+   - routes/twilio.py: _assign_mode() on early post-consent turns;
+     get_mode_store() builds a redis client from REDIS_URL (None when unset;
+     tests monkeypatch it with a fake client).
+   - tests/test_mode_router.py: 17 tests (representative utterances per mode,
+     consent gate, prompt selection, Redis round-trip, WS-flow persistence,
+     pre-consent no-classification). Full suite: 132 passed.
+
+Status: 19/115 features passing.
+
+Decisions / notes:
+- Doc hook blocks creating ai-agents/voice-agent/patient-mode.md; patient
+  mode maps to family-mode.md, which explicitly covers "a family member or
+  the patient themselves". Dedicated patient prompt belongs to feature #47.
+- fakeredis could not be installed (sandbox blocks pip network); tests use a
+  minimal in-file Redis hash double instead.
+- FOUND UNCOMMITTED FOREIGN WORK (not mine, left untracked/unstaged):
+  apis/api_intake/app/{orchestrator,followup,prompts,services}/ and a
+  modified infra/docker-compose.yml. Next session should inspect, test, and
+  either commit or flag it (same situation as session 6).
+
+Recommended next work:
+- Feature #43 (ambiguous/low-confidence handling): classify_utterance already
+  returns None on ties/zero evidence — add clarifying question, confidence on
+  the call record, cautious Family default, clarification_attempts wiring.
+- Feature #44 (mid-call mode switch), then #45/#46/#47 mode-specific turns
+  calling apply_decision() on accepted branches.
+
 === Session 7 — Coding agent (2026-07-11) ===
 
 Branch: autonomous-coder/initialize
